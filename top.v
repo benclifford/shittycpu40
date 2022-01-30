@@ -36,12 +36,12 @@ module top (
         end
         if(instr_phase == 1) begin
           // when we hit here we should have the instruction to execute in instr
-          if(instr == 32'h0011) begin   // LED on
+          if(instr == 32'h20000001) begin   // LED on
             led <= 1;
             pc <= pc + 1;
             instr_phase <= 0;
           end
-          if(instr == 32'h0010) begin   // LED off
+          if(instr == 32'h20000000) begin   // LED off
             led <= 0;
             pc <= pc + 1;
             instr_phase <= 0;
@@ -53,7 +53,7 @@ module top (
             pc <= pc + 1;
             instr_phase <= 2; // go into wait-before-phase 0 state
           end
-          if(instr == 32'h0030) begin
+          if(instr == 32'h30000000) begin
             pc <= 0;
             instr_phase <= 0;
           end
@@ -78,15 +78,15 @@ module top (
       pc = 0;
       instr_phase = 0;
 
-      ram[0] = 32'h00000011; // LED on
+      ram[0] = 32'h20000001; // LED on
       ram[1] = 32'h11000000; // sleep 1s
-      ram[2] = 32'h00000010; // LED off
+      ram[2] = 32'h20000000; // LED off
       ram[3] = 32'h11000000; // sleep 1s
-      ram[4] = 32'h00000011; // LED on
+      ram[4] = 32'h20000001; // LED on
       ram[5] = 32'h10800000; // sleep half a second
-      ram[6] = 32'h00000010; // LED off
+      ram[6] = 32'h20000000; // LED off
       ram[7] = 32'h10800000; // sleep half a second
-      ram[8] = 32'h00000030; // reset PC to start
+      ram[8] = 32'h30000000; // reset PC to start
     end;
 
 endmodule
