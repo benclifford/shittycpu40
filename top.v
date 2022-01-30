@@ -71,6 +71,7 @@ module top (
     end
 
     // attempt to allocate half the RAM on the ice40
+    // 2048 32-bit words, or 8192 kilobytes
     reg [31:0] ram[0:2048] ;
 
     initial begin
@@ -83,9 +84,9 @@ module top (
       ram[2] = 32'h20000000; // LED off
       ram[3] = 32'h11000000; // sleep 1s
       ram[4] = 32'h20000001; // LED on
-      ram[5] = 32'h10800000; // sleep half a second
+      ram[5] = 32'h10200000; // sleep just a bit
       ram[6] = 32'h20000000; // LED off
-      ram[7] = 32'h10800000; // sleep half a second
+      ram[7] = 32'h11000000; // sleep 1s
       ram[8] = 32'h30000000; // reset PC to start
     end;
 
