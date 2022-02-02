@@ -33,8 +33,7 @@ module top (
 
 
         if(instr_phase == 0) begin
-
-            // this should load an instruction from mem[pc]
+            // load an instruction from the PC address
             instr <= ram[pc];
             instr_phase <= 1;
         end
