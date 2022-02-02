@@ -139,17 +139,6 @@ module top (
       ram[13] = 32'h15000000; // sleep 5s
       ram[14] = 32'h30000000; // reset PC to start - jump-unconditional to start
 
-/*
-      ram[0] = 32'h20000001; // LED on
-      ram[1] = 32'h11000000; // sleep 1s
-      ram[2] = 32'h20000000; // LED off
-      ram[3] = 32'h11000000; // sleep 1s
-      ram[4] = 32'h20000001; // LED on
-      ram[5] = 32'h10200000; // sleep just a bit
-      ram[6] = 32'h20000000; // LED off
-      ram[7] = 32'h11000000; // sleep 1s
-      ram[8] = 32'h30000000; // reset PC to start
-*/
     end;
 
 endmodule
