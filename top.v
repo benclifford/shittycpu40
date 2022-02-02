@@ -24,9 +24,12 @@ module top (
 
     reg [31:0] delay_countdown; // for 1xxxxxxx DELAY instruction
 
+
     reg [31:0] scratch; // simple register file of 1 register... elaborate later
 
-    reg [31:0] scratchdown; // stack of depth 2... this is the tail of it.
+    reg [31:0] scratchstack[128]; // scratch stack aka data stack
+
+    reg [7:0] scratchsp = 0;
 
     always @(posedge CLK) begin
       if(rst_delay == 0) begin
@@ -79,14 +82,17 @@ module top (
             instr_phase <= 0;
           end
           if( (instr & 32'hF0000000) == 32'h70000000) begin // DROP stack head
-            scratch <= scratchdown;
+            scratch <= scratchstack[scratchsp];
             pc <= pc + 1;
-            instr_phase <= 0;
+            instr_phase <= 4;
+            // here and in next instruction 8... it's unclear to me why I can't modify
+            // scratchsp <= scratchsp -1  in the same step: if i do, some kind of combinatorial
+            // explosion happens and I run out of LUTs
           end
           if( (instr & 32'hF0000000) == 32'h80000000) begin // push stack head down, leaving scratch undefined
-            scratchdown <= scratch;
+            scratchstack[scratchsp] <= scratch;
             pc <= pc + 1;
-            instr_phase <= 0;
+            instr_phase <= 3;
           end
  
         end
@@ -96,6 +102,14 @@ module top (
             end else begin
                 delay_countdown <= delay_countdown - 1;
             end
+        end
+        if(instr_phase == 3) begin // someones registed stratch stackpoint increment
+            // scratchsp <= scratchsp + 1;
+            instr_phase <= 0;
+        end
+        if(instr_phase == 4) begin // someones registed stratch stackpoint increment
+            // scratchsp <= scratchsp - 1;
+            instr_phase <= 0;
         end
       end else begin
         rst_delay <= rst_delay - 1;
@@ -110,8 +124,6 @@ module top (
 
       pc = 0;
       instr_phase = 0;
-
-
  
       ram[0] = 32'h60000003; // load scratch immediate <- 3
 
