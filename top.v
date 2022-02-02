@@ -26,6 +26,8 @@ module top (
 
     reg [31:0] scratch; // simple register file of 1 register... elaborate later
 
+    reg [31:0] scratchdown; // stack of depth 2... this is the tail of it.
+
     always @(posedge CLK) begin
       if(rst_delay == 0) begin
 
@@ -77,6 +79,16 @@ module top (
             pc <= pc + 1;
             instr_phase <= 0;
           end
+          if( (instr & 32'hF0000000) == 32'h70000000) begin // DROP stack head
+            scratch <= scratchdown;
+            pc <= pc + 1;
+            instr_phase <= 0;
+          end
+          if( (instr & 32'hF0000000) == 32'h80000000) begin // push stack head down, leaving scratch undefined
+            scratchdown <= scratch;
+            pc <= pc + 1;
+            instr_phase <= 0;
+          end
  
         end
         if(instr_phase == 2) begin // someones requested a delay before going back to phase 0
@@ -101,22 +113,32 @@ module top (
       instr_phase = 0;
 
 
+ 
       ram[0] = 32'h60000003; // load scratch immediate <- 3
 
-      // this block three times
-      ram[1] = 32'h20000001; // LED on
-      ram[2] = 32'h10200000; // sleep a blip
-      ram[3] = 32'h20000000; // LED off
-      ram[4] = 32'h10800000; // sleep 0.5s
+      ram[1] = 32'h80000000; // allocate loop variable in scratch
+      ram[2] = 32'h60000008; // load scratch immediate <- 8
 
-      ram[5] = 32'h40000001; // some kind of decrement top of stack by one?
+      // this block eight times
+      ram[3] = 32'h20000001; // LED on
+      ram[4] = 32'h10080000; // sleep a blip
+      ram[5] = 32'h20000000; // LED off
+      ram[6] = 32'h10080000; // sleep a blip
 
-      ram[6] = 32'h50000005; // some kind of jump-back if non-zero / jump if zero - jump back relative, 5
+      ram[7] = 32'h40000001; // some kind of decrement top of stack by one?
+
+      ram[8] = 32'h50000005; // some kind of jump-back if non-zero / jump if zero - jump back relative, 5
+
+      ram[9] = 32'h70000000; // drop the loop count for this inner loop
+      ram[10] = 32'h10800000; // sleep 0.5s
+
+      ram[11] = 32'h40000001; // some kind of decrement top of stack by one?
+      ram[12] = 32'h5000000B; // some kind of jump-back if non-zero / jump if zero - jump back relative, 11
 
       // NO-OP as no stack register file now  ram[6] = 32'h70000000; // some kind of drop from stack, if using stack style registers
  
-      ram[7] = 32'h15000000; // sleep 5s
-      ram[8] = 32'h30000000; // reset PC to start - jump-unconditional to start
+      ram[13] = 32'h15000000; // sleep 5s
+      ram[14] = 32'h30000000; // reset PC to start - jump-unconditional to start
 
 /*
       ram[0] = 32'h20000001; // LED on
