@@ -27,7 +27,26 @@ module top (
 
     reg [31:0] scratch; // simple register file of 1 register... elaborate later
 
-    reg [31:0] scratchstack[128]; // scratch stack aka data stack
+    // reg [31:0] scratchstack[128]; // scratch stack aka data stack
+
+    // TODO: this is only 16 bits - a stack cell is 32 bits so I need 2
+    // also its "only" 256 cells... maybe i want access to the whole ram, not
+    // a distinct stack RAM? Although before I was only expecting a stack of
+    // 128 cells...
+
+    cellram_scratch scratchstackram (
+      .CLK (CLK),
+      .WDATA (scratchstack_wdata),
+      .ADDR (scratchstack_addr),
+      .RDATA (scratchstack_rdata),
+      .WEN (scratchstack_wen)
+
+    );
+
+    reg [31:0] scratchstack_wdata;
+    reg [31:0] scratchstack_rdata;
+    reg [7:0] scratchstack_addr;
+    reg scratchstack_wen;
 
     reg [7:0] scratchsp = 0;
 
@@ -82,17 +101,18 @@ module top (
             instr_phase <= 0;
           end
           if( (instr & 32'hF0000000) == 32'h70000000) begin // DROP stack head
-            scratch <= scratchstack[scratchsp];
+            scratchstack_addr <= scratchstack - 1;
+            scratchsp <= scratchsp - 1;
+
             pc <= pc + 1;
-            instr_phase <= 4;
-            // here and in next instruction 8... it's unclear to me why I can't modify
-            // scratchsp <= scratchsp -1  in the same step: if i do, some kind of combinatorial
-            // explosion happens and I run out of LUTs
+            instr_phase <= 4; // read scratch ram data into scratch
           end
-          if( (instr & 32'hF0000000) == 32'h80000000) begin // push stack head down, leaving scratch undefined
-            scratchstack[scratchsp] <= scratch;
+          if( (instr & 32'hF0000000) == 32'h80000000) begin // PUSH head down, leaving scratch free for new value to assign in another instruction
+            scratchstack_wdata <= scratch;
+            scratchstack_addr <= scratchsp;
+            scratchsp <= scratchsp + 1;
             pc <= pc + 1;
-            instr_phase <= 3;
+            instr_phase <= 3; // pulse 
           end
  
         end
@@ -103,14 +123,19 @@ module top (
                 delay_countdown <= delay_countdown - 1;
             end
         end
-        if(instr_phase == 3) begin // someones registed stratch stackpoint increment
-            // scratchsp <= scratchsp + 1;
+        if(instr_phase == 3) begin // someones requested stack write
+            scratchstack_wen <= 1;
+            instr_phase <= 5; // end-write
+        end
+        if(instr_phase == 4) begin // someones requested stack read
+            scratch <= scratchstack_rdata;
             instr_phase <= 0;
         end
-        if(instr_phase == 4) begin // someones registed stratch stackpoint increment
-            // scratchsp <= scratchsp - 1;
-            instr_phase <= 0;
+        if(instr_phase == 5) begin // end write
+            scratchstack_wen <= 1;
+            instr_phase <= 0; // end-write
         end
+
       end else begin
         rst_delay <= rst_delay - 1;
       end
@@ -122,6 +147,8 @@ module top (
 
     initial begin
 
+      scratchstack_wen = 0;
+
       pc = 0;
       instr_phase = 0;
 
@@ -129,4 +156,44 @@ module top (
 
     end;
 
+endmodule
+
+module cellram_scratch (
+      input CLK,
+      input [31:0] WDATA,
+      input WEN,
+      input [7:0] ADDR,
+      output [31:0] RDATA,
+    );
+
+ // I'm assuming i'll be fiddling with RAM stuff later so this
+ // block is a passthrough to give me scope for fiddling with
+ // the interface. maybe unnecessary.
+
+ ram ramblock (
+   .clk (CLK),
+   .addr (ADDR),
+   .din (WDATA),
+   .dout (RDATA),
+   .write_en (WEN)
+  );
+
+endmodule
+
+// from ice40 RAM block technote, modified by me
+module ram (din, addr, write_en, clk, dout);// 512x8
+ parameter addr_width = 8;
+ parameter data_width = 32;
+ input [addr_width-1:0] addr;
+ input [data_width-1:0] din;
+ input write_en, clk;
+ output [data_width-1:0] dout;
+ reg [data_width-1:0] dout; // Register for output.
+ reg [data_width-1:0] mem [(1<<addr_width)-1:0];
+ always @(posedge clk)
+ begin
+ if (write_en)
+ mem[(addr)] <= din;
+ dout = mem[addr]; // Output register controlled by clock.
+ end
 endmodule
