@@ -50,7 +50,6 @@ module top (
 
     reg [7:0] scratchsp;
 
-
     always @(posedge CLK) begin
       if(rst_delay == 0) begin
 
@@ -113,7 +112,24 @@ module top (
             scratchstack_addr <= scratchsp;
             scratchsp <= scratchsp + 1;
             pc <= pc + 1;
-            instr_phase <= 3; // pulse 
+            instr_phase <= 3; // pulse
+          end
+          if( (instr & 32'hF0000000) == 32'h90000000) begin // push stack head down, and put the next-step PC in the top (aka GOSUB) in the new scratch space
+            // compare with impl of 0x8.. instruction which leaves the space empty -- should be identical apart from messing with PC and the empty scratch cell.
+            scratchstack_wdata <= scratch;
+            scratchstack_addr <= scratchsp;
+            scratchsp <= scratchsp + 1;
+            instr_phase <= 3;
+
+            pc <= instr & 32'h0FFFFFFF;
+            scratch <= pc + 1;
+          end
+          if( (instr & 32'hF0000000) == 32'hA0000000) begin // RET to on-stack new PC (aka GOTO)... like DROP but doing PC stuff with the otherwise-discarded value
+            pc <= scratch;
+
+            scratchstack_addr <= scratchsp - 1;
+            scratchsp <= scratchsp - 1;
+            instr_phase <= 4;
           end
  
         end
@@ -159,6 +175,7 @@ module top (
       scratchstack_wen <= 0;
       scratchsp <= 0;
 
+      scratchsp <= 0;
       pc = 0;
       instr_phase = 0;
 
