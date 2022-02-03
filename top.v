@@ -44,11 +44,12 @@ module top (
     );
 
     reg [31:0] scratchstack_wdata;
-    reg [31:0] scratchstack_rdata;
+    wire [31:0] scratchstack_rdata;
     reg [7:0] scratchstack_addr;
     reg scratchstack_wen;
 
-    reg [7:0] scratchsp = 0;
+    reg [7:0] scratchsp;
+
 
     always @(posedge CLK) begin
       if(rst_delay == 0) begin
@@ -128,12 +129,20 @@ module top (
             instr_phase <= 5; // end-write
         end
         if(instr_phase == 4) begin // someones requested stack read
+            // fluffy wait
+            instr_phase <= 41;
+        end
+        if(instr_phase == 41) begin // someones requested stack read
+            // fluffy wait
+            instr_phase <= 42;
+        end
+        if(instr_phase == 42) begin // someones requested stack read
             scratch <= scratchstack_rdata;
             instr_phase <= 0;
         end
         if(instr_phase == 5) begin // end write
-            scratchstack_wen <= 1;
-            instr_phase <= 0; // end-write
+            scratchstack_wen <= 0;
+            instr_phase <= 0;
         end
 
       end else begin
@@ -147,7 +156,8 @@ module top (
 
     initial begin
 
-      scratchstack_wen = 0;
+      scratchstack_wen <= 0;
+      scratchsp <= 0;
 
       pc = 0;
       instr_phase = 0;
@@ -181,19 +191,20 @@ module cellram_scratch (
 endmodule
 
 // from ice40 RAM block technote, modified by me
-module ram (din, addr, write_en, clk, dout);// 512x8
+module ram (din, addr, write_en, clk, dout);
  parameter addr_width = 8;
  parameter data_width = 32;
  input [addr_width-1:0] addr;
  input [data_width-1:0] din;
  input write_en, clk;
- output [data_width-1:0] dout;
- reg [data_width-1:0] dout; // Register for output.
+ output reg [data_width-1:0] dout;
+ // reg [data_width-1:0] dout; // Register for output.
  reg [data_width-1:0] mem [(1<<addr_width)-1:0];
  always @(posedge clk)
- begin
- if (write_en)
- mem[(addr)] <= din;
- dout = mem[addr]; // Output register controlled by clock.
+   begin
+   if (write_en) begin
+     mem[(addr)] <= din;
+   end
+   dout <= mem[addr]; // Output register controlled by clock.
  end
 endmodule
