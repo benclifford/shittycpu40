@@ -101,7 +101,7 @@ module top (
             instr_phase <= 0;
           end
           if( (instr & 32'hF0000000) == 32'h70000000) begin // DROP stack head
-            scratchstack_addr <= scratchstack - 1;
+            scratchstack_addr <= scratchsp - 1;
             scratchsp <= scratchsp - 1;
 
             pc <= pc + 1;

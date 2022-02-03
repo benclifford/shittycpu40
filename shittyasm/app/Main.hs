@@ -31,6 +31,7 @@ emitToken JUMPZERO = "32'h" ++ showHex v "" where v = 0x30000000
 emitToken t = error $ "non-emittable token " ++ show t
 
 myprog = [
+    PUSH,
     LOAD 3,
     PUSH,
     LOAD 8,
