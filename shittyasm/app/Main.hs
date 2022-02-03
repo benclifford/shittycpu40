@@ -45,6 +45,6 @@ myprog = [
     DECR 1,
     JUMPBACKNZ 11,
     DROP,
-    SLEEP 5000000,
+    SLEEP 0x5000000,
     JUMPZERO
   ]
