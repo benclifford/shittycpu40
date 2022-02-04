@@ -132,8 +132,11 @@ module top (
           end
           if( (instr & 32'hF0000000) == 32'h60000000) begin // load scratch immediate
             scratch <= instr & 32'h0FFFFFFF;
+            scratchstack_wdata <= scratch;
+            scratchstack_addr <= scratchsp;
+            scratchsp <= scratchsp + 1;
             pc <= pc + 1;
-            instr_phase <= 0;
+            instr_phase <= 3;
           end
           if( (instr & 32'hF0000000) == 32'h70000000) begin // DROP stack head
             scratchstack_addr <= scratchsp - 1;
@@ -142,13 +145,7 @@ module top (
             pc <= pc + 1;
             instr_phase <= 4; // read scratch ram data into scratch
           end
-          if( (instr & 32'hF0000000) == 32'h80000000) begin // PUSH head down, leaving scratch free for new value to assign in another instruction
-            scratchstack_wdata <= scratch;
-            scratchstack_addr <= scratchsp;
-            scratchsp <= scratchsp + 1;
-            pc <= pc + 1;
-            instr_phase <= 3; // pulse
-          end
+          // Instruction prefix h80000000 is unused: this used to be PUSH
           if( (instr & 32'hF0000000) == 32'h90000000) begin // push stack head down, and put the next-step PC in the top (aka GOSUB) in the new scratch space
             // compare with impl of 0x8.. instruction which leaves the space empty -- should be identical apart from messing with PC and the empty scratch cell.
             scratchstack_wdata <= scratch;
