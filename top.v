@@ -1,7 +1,10 @@
 // look in pins.pcf for all the pin names on the TinyFPGA BX board
 module top (
     input CLK,    // 16MHz clock
+    input PIN_2,  // console serial in
     output LED,   // User/boot LED next to power LED
+    output PIN_1, // console serial out
+    output PIN_3, // copy of internal LED
     output USBPU  // USB pull-up resistor
 );
     // drive USB pull-up resistor to '0' to disable USB
@@ -10,6 +13,7 @@ module top (
     // assign LED = 1; // light the LED just to show somethings happened
     reg [0:0] led = 1;
     assign LED = led; // can't make LED a register directly...
+    assign PIN_3 = led;
 
     // this reset delay is a known hardware niggle with ice40 loading RAM at initial time - need to wait a few clock cycles after startup. see https://github.com/YosysHQ/icestorm/issues/76
     // with 16000000 delay, works but that is about a second startup time. the github issue talks about 36 clock cycles.
@@ -49,6 +53,37 @@ module top (
     reg scratchstack_wen;
 
     reg [7:0] scratchsp;
+
+
+    // the uart
+
+    wire console_resetn = rst_delay == 0;
+
+    reg [3:0] console_div_we = 0;
+    reg [31:0] console_div_di = 0;
+    wire [31:0] console_div_do;
+
+    reg console_dat_we = 0;
+    reg console_dat_re = 0;
+    reg [31:0] console_dat_di = 0;
+    wire [31:0] console_dat_do;
+    wire console_dat_wait;
+
+    simpleuart console (
+      .clk (CLK),
+      .resetn (console_resetn),
+      .ser_tx (PIN_1),
+      .ser_rx (PIN_2),
+      .reg_div_we (console_div_we),
+      .reg_div_di (console_div_di),
+      .reg_div_do (console_div_do),
+      .reg_dat_we (console_dat_we),
+      .reg_dat_re (console_dat_re),
+      .reg_dat_di (console_dat_di),
+      .reg_dat_do (console_dat_do),
+      .reg_dat_wait (console_dat_wait)
+    );
+
 
     always @(posedge CLK) begin
       if(rst_delay == 0) begin
@@ -131,6 +166,29 @@ module top (
             scratchsp <= scratchsp - 1;
             instr_phase <= 4;
           end
+          if( (instr & 32'hFF000000) == 32'hB1000000) begin   // B1  == console uart init - write to UART cfg divider register.
+            console_div_di <= 53333; // I would like this to be under program control, eg pop the value from scratch
+                                     // it's computed as 16MHz / baudrate = divisor.
+                                     // 16Mhz / 53333 should give 300 baud
+            pc <= pc + 1;
+            instr_phase <= 6; // pulse register write.
+          end
+          if( (instr & 32'hFF000000) == 32'hB2000000) begin   // B2 = write to console
+            // this is multistep:
+            // put value on write register
+            // take write high
+            // wait until uart says its done
+            console_dat_di <= instr & 32'h000000FF;
+            pc <= pc + 1;
+            instr_phase <= 62; // pulse uart data write and wait for response
+/*
+      .reg_dat_we (console_dat_we),
+      .reg_dat_re (console_dat_re),
+      .reg_dat_di (console_dat_di),
+      .reg_dat_do (console_dat_do),
+      .reg_dat_wait (console_dat_wait)
+*/
+          end
  
         end
         if(instr_phase == 2) begin // someones requested a delay before going back to phase 0
@@ -158,6 +216,22 @@ module top (
         end
         if(instr_phase == 5) begin // end write
             scratchstack_wen <= 0;
+            instr_phase <= 0;
+        end
+        if(instr_phase == 6) begin // someones requested console uart clock divisor write
+            console_div_we <= 4'b1111;
+            instr_phase <= 61;
+        end
+        if(instr_phase == 61) begin // unpulse clock divisor write
+            console_div_we <= 0;
+            instr_phase <= 0;
+        end
+        if(instr_phase == 62) begin // uart write
+            console_dat_we <= 1;
+            instr_phase <= 63;
+        end
+        if(instr_phase == 63 && !console_dat_wait) begin // wait for UART to respond...
+            console_dat_we <= 0;
             instr_phase <= 0;
         end
 
