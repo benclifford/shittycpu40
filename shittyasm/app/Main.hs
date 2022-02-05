@@ -44,9 +44,6 @@ myprog = [
     GOSUB 25,
     DECR 1,
     JUMPBACKNZ 2,
-    -- GOSUB 18,  -- if I move this gosub up one line to immediately before the drop, I get the inner loop repeated blipblip-long, without ever getting the final delay. But I do get the delay that happens right after this gosub, by the looks of things? (visually)
-    -- ... which makes it seem like the outer loop (that should stop after 3 steps) is never ending. so some kind of pushing/popping of values into ram that happens because of the gosub/ret/drop interaction is going awry. The inner loop pointer is being restored OK, I think, when the GOSUB returns -- otherwise the outer loop would be broken?
-    -- and the general PUSH/DROP mechanism is working ok for one level of stuff going to the stack. So maybe the bug is when the ram-stack becomes 2 cells deep? i.e. x,y,ret on the stack. the other situations are only x,ret and x,y. which would suggest something awry with the stack pointer changing, rather than with the values in ram? In which case, a triple nested for loop would also break, with no GOSUB involved at all?
     DROP,
     SLEEP 0x1000000,
     DECR 1,
