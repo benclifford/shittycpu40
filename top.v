@@ -5,6 +5,7 @@ module top (
     output LED,   // User/boot LED next to power LED
     output PIN_1, // console serial out
     output PIN_3, // copy of internal LED
+    output PIN_4, // speaker
     output USBPU  // USB pull-up resistor
 );
     // drive USB pull-up resistor to '0' to disable USB
@@ -82,6 +83,17 @@ module top (
       .reg_dat_di (console_dat_di),
       .reg_dat_do (console_dat_do),
       .reg_dat_wait (console_dat_wait)
+    );
+
+
+    reg [31:0] tonegen_divider;
+    reg tonegen_we = 0;
+
+    tonegen speaker (
+        .clk (CLK),
+        .speaker (PIN_4),
+        .cfg_divider (tonegen_divider),
+        .cfg_we (tonegen_we)
     );
 
 
@@ -186,7 +198,11 @@ module top (
       .reg_dat_wait (console_dat_wait)
 */
           end
- 
+          if( (instr & 32'hF0000000) == 32'hC0000000) begin   // set tonegen divider
+            tonegen_divider <= instr & 32'h0FFFFFFF;
+            pc <= pc + 1;
+            instr_phase <= 70;
+          end
         end
         if(instr_phase == 2) begin // someones requested a delay before going back to phase 0
             if(delay_countdown == 0) begin
@@ -229,6 +245,14 @@ module top (
         end
         if(instr_phase == 63 && !console_dat_wait) begin // wait for UART to respond...
             console_dat_we <= 0;
+            instr_phase <= 0;
+        end
+        if(instr_phase == 70) begin // pulse write for tonegen
+            tonegen_we <= 1;
+            instr_phase <= 71;
+        end
+        if(instr_phase == 71) begin // pulse write for tonegen
+            tonegen_we <= 0;
             instr_phase <= 0;
         end
 
@@ -295,4 +319,34 @@ module ram (din, addr, write_en, clk, dout);
    end
    dout <= mem[addr]; // Output register controlled by clock.
  end
+endmodule
+
+
+module tonegen (
+  input clk,
+  input [31:0] cfg_divider, // trying to get 1khz-ish
+  input cfg_we,
+  output reg speaker = 0
+);
+
+    reg [31:0] phase;
+    reg [31:0] reg_cfg_divider = 8000;
+
+    always @(posedge clk) begin
+        if(cfg_we) begin
+            reg_cfg_divider <= cfg_divider;
+        end
+    end
+
+    always @(posedge clk) begin
+        if(reg_cfg_divider == 0) begin
+            speaker <= 0;
+        end else if(phase > reg_cfg_divider) begin
+            speaker <= ~speaker;
+            phase <= 0;
+        end else begin
+            phase <= phase + 1;
+        end
+    end
+
 endmodule

@@ -3,7 +3,7 @@ module Main where
 import Lib
 import Numeric (showHex)
 
-data Token = LOAD Int | LED Bool | SLEEP Int | DECR Int | JUMPBACKNZ Int | DROP | JUMPZERO | RET | GOSUB Int | CONSOLEUARTINIT | CONSOLEWRITE Int
+data Token = LOAD Int | LED Bool | SLEEP Int | DECR Int | JUMPBACKNZ Int | DROP | JUMPZERO | RET | GOSUB Int | CONSOLEUARTINIT | CONSOLEWRITE Int | TONEGEN Int
   deriving Show
 
 main :: IO ()
@@ -31,15 +31,17 @@ emitToken JUMPZERO = "32'h" ++ showHex v "" where v = 0x30000000
 emitToken RET = "32'h" ++ showHex v "" where v = 0xA0000000
 emitToken CONSOLEUARTINIT = "32'h" ++ showHex v "" where v = 0xB1000000
 emitToken (CONSOLEWRITE n) = "32'h" ++ showHex v "" where v = 0xB2000000 + n
+emitToken (TONEGEN n) = "32'h" ++ showHex v "" where v = 0xC0000000 + n
 emitToken t = error $ "non-emittable token " ++ show t
 
 myprog = [
     CONSOLEUARTINIT,
+    TONEGEN 0,
     LOAD 3,
     CONSOLEWRITE 83, -- 83 is the code for Y - could write haskell compile time code for this...
     LOAD 5,
     LOAD 20,
-    GOSUB 22,
+    GOSUB 23,
     DECR 1,
     JUMPBACKNZ 2,
     -- GOSUB 18,  -- if I move this gosub up one line to immediately before the drop, I get the inner loop repeated blipblip-long, without ever getting the final delay. But I do get the delay that happens right after this gosub, by the looks of things? (visually)
@@ -59,10 +61,13 @@ myprog = [
     CONSOLEWRITE 82, -- 82 is the code for R - could write haskell compile time code for this...
     SLEEP 0x5000000,
     JUMPZERO,
+    TONEGEN 0xB000,
     LED True,
     SLEEP 0x80000,
+    TONEGEN 0x4000,
     LED False,
     SLEEP 0x80000,
+    TONEGEN 0,
     RET
   ]
 
