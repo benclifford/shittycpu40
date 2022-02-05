@@ -34,7 +34,8 @@ executables:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - shittyasm
+    - shittyasm 
+    - mtl
 
 tests:
   shittyasm-test:

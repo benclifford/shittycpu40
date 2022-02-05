@@ -1,6 +1,7 @@
 module Main where
 
 import Lib
+import Control.Monad.State.Lazy
 import Numeric (showHex)
 
 data Token = LOAD Int | LED Bool | SLEEP Int | DECR Int | JUMPBACKNZ Int | DROP | RET | GOSUB Int | CONSOLEUARTINIT | CONSOLEWRITE Int | TONEGEN Int
@@ -9,8 +10,9 @@ data Token = LOAD Int | LED Bool | SLEEP Int | DECR Int | JUMPBACKNZ Int | DROP 
 main :: IO ()
 main = shittyasm myprog
 
-shittyasm :: [Token] -> IO ()
-shittyasm tokens = do
+shittyasm :: State ResolverState () -> IO ()
+shittyasm prog = do
+  let tokens = resolveProg prog
   let numberedTokens = tokens `zip` [0..]
   putStrLn "// shittyasm start"
   mapM_ emitStatement numberedTokens
@@ -21,6 +23,16 @@ emitStatement (t, n) = putStrLn $ "  ram[" ++ show n ++ "] = " ++ (emit . codify
 
 emit :: Int -> String
 emit v = "32'h" ++ showHex v ""
+
+type ResolverState = ([Token])
+
+resolveProg :: State ResolverState () -> [Token]
+resolveProg prog = execState prog []
+
+i :: Token -> State ResolverState ()
+i token = do
+  s <- get
+  put (s ++ [token])
 
 codify :: Token -> Int
 codify (LOAD n) = 0x60000000 + n
@@ -36,48 +48,47 @@ codify (CONSOLEWRITE n) = 0xB2000000 + n
 codify (TONEGEN n) = 0xC0000000 + n
 codify t = error $ "non-emittable token " ++ show t
 
-myprog = [
-    CONSOLEUARTINIT,
-    GOSUB 30,
-    TONEGEN 0,
-    LOAD 3,
-    CONSOLEWRITE 83, -- 83 is the code for Y - could write haskell compile time code for this...
-    LOAD 5,
-    LOAD 20,
-    GOSUB 25,
-    DECR 1,
-    JUMPBACKNZ 2,
-    DROP,
-    SLEEP 0x1000000,
-    DECR 1,
-    JUMPBACKNZ 7,
-    DROP,
-    LED True,
-    SLEEP 0x1000000,
-    LED False,
-    DECR 1,
-    JUMPBACKNZ 15,
-    DROP,
-    CONSOLEWRITE 82, -- 82 is the code for R - could write haskell compile time code for this...
-    SLEEP 0x5000000,
-    LOAD 3,
-    RET, -- RET >> LOAD = GOTO
-    LED True,
-    SLEEP 0x80000,
-    LED False,
-    SLEEP 0x80000,
-    RET,
-    LOAD 3,
-    TONEGEN 0x4000,
-    SLEEP 1600000,
-    TONEGEN 00,
-    SLEEP 14400000,
-    DECR 1,
-    JUMPBACKNZ 5,
-    DROP,
-    TONEGEN 0x4000,
-    SLEEP 8000000,
-    TONEGEN 0,
-    RET
-  ]
-
+myprog :: State ResolverState ()
+myprog = do
+    i $ CONSOLEUARTINIT
+    i $ GOSUB 30
+    i $ TONEGEN 0
+    i $ LOAD 3
+    i $ CONSOLEWRITE 83 -- 83 is the code for Y - could write haskell compile time code for this...
+    i $ LOAD 5
+    i $ LOAD 20
+    i $ GOSUB 25
+    i $ DECR 1
+    i $ JUMPBACKNZ 2
+    i $ DROP
+    i $ SLEEP 0x1000000
+    i $ DECR 1
+    i $ JUMPBACKNZ 7
+    i $ DROP
+    i $ LED True
+    i $ SLEEP 0x1000000
+    i $ LED False
+    i $ DECR 1
+    i $ JUMPBACKNZ 15
+    i $ DROP
+    i $ CONSOLEWRITE 82 -- 82 is the code for R - could write haskell compile time code for this...
+    i $ SLEEP 0x5000000
+    i $ LOAD 3
+    i $ RET -- RET >> LOAD = GOTO
+    i $ LED True
+    i $ SLEEP 0x80000
+    i $ LED False
+    i $ SLEEP 0x80000
+    i $ RET
+    i $ LOAD 3
+    i $ TONEGEN 0x4000
+    i $ SLEEP 1600000
+    i $ TONEGEN 0
+    i $ SLEEP 14400000
+    i $ DECR 1
+    i $ JUMPBACKNZ 5
+    i $ DROP
+    i $ TONEGEN 0x4000
+    i $ SLEEP 8000000
+    i $ TONEGEN 0
+    i $ RET
