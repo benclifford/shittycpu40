@@ -17,21 +17,24 @@ shittyasm tokens = do
   putStrLn "// shittyasm end"
 
 emitStatement :: (Token, Int) -> IO ()
-emitStatement (t, n) = putStrLn $ "  ram[" ++ show n ++ "] = " ++ emitToken t ++ ";"
+emitStatement (t, n) = putStrLn $ "  ram[" ++ show n ++ "] = " ++ (emit . codify) t ++ ";"
 
-emitToken :: Token -> String
-emitToken (LOAD n) = "32'h" ++ showHex v "" where v = 0x60000000 + n
-emitToken (SLEEP n) = "32'h" ++ showHex v "" where v = 0x10000000 + n
-emitToken (DECR n) = "32'h" ++ showHex v "" where v = 0x40000000 + n
-emitToken (JUMPBACKNZ n) = "32'h" ++ showHex v "" where v = 0x50000000 + n
-emitToken (GOSUB n) = "32'h" ++ showHex v "" where v = 0x90000000 + n
-emitToken (LED b) = "32'h" ++ showHex v "" where v = 0x20000000 + n ; n = if b then 1 else 0
-emitToken DROP = "32'h" ++ showHex v "" where v = 0x70000000
-emitToken RET = "32'h" ++ showHex v "" where v = 0xA0000000
-emitToken CONSOLEUARTINIT = "32'h" ++ showHex v "" where v = 0xB1000000
-emitToken (CONSOLEWRITE n) = "32'h" ++ showHex v "" where v = 0xB2000000 + n
-emitToken (TONEGEN n) = "32'h" ++ showHex v "" where v = 0xC0000000 + n
-emitToken t = error $ "non-emittable token " ++ show t
+emit :: Int -> String
+emit v = "32'h" ++ showHex v ""
+
+codify :: Token -> Int
+codify (LOAD n) = 0x60000000 + n
+codify (SLEEP n) = 0x10000000 + n
+codify (DECR n) = 0x40000000 + n
+codify (JUMPBACKNZ n) = 0x50000000 + n
+codify (GOSUB n) = 0x90000000 + n
+codify (LED b) = 0x20000000 + n where n = if b then 1 else 0
+codify DROP = 0x70000000
+codify RET = 0xA0000000
+codify CONSOLEUARTINIT = 0xB1000000
+codify (CONSOLEWRITE n) = 0xB2000000 + n
+codify (TONEGEN n) = 0xC0000000 + n
+codify t = error $ "non-emittable token " ++ show t
 
 myprog = [
     CONSOLEUARTINIT,
