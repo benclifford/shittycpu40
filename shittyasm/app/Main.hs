@@ -3,7 +3,7 @@ module Main where
 import Lib
 import Numeric (showHex)
 
-data Token = LOAD Int | LED Bool | SLEEP Int | DECR Int | JUMPBACKNZ Int | DROP | JUMPZERO | RET | GOSUB Int | CONSOLEUARTINIT | CONSOLEWRITE Int | TONEGEN Int
+data Token = LOAD Int | LED Bool | SLEEP Int | DECR Int | JUMPBACKNZ Int | DROP | RET | GOSUB Int | CONSOLEUARTINIT | CONSOLEWRITE Int | TONEGEN Int
   deriving Show
 
 main :: IO ()
@@ -27,7 +27,6 @@ emitToken (JUMPBACKNZ n) = "32'h" ++ showHex v "" where v = 0x50000000 + n
 emitToken (GOSUB n) = "32'h" ++ showHex v "" where v = 0x90000000 + n
 emitToken (LED b) = "32'h" ++ showHex v "" where v = 0x20000000 + n ; n = if b then 1 else 0
 emitToken DROP = "32'h" ++ showHex v "" where v = 0x70000000
-emitToken JUMPZERO = "32'h" ++ showHex v "" where v = 0x30000000
 emitToken RET = "32'h" ++ showHex v "" where v = 0xA0000000
 emitToken CONSOLEUARTINIT = "32'h" ++ showHex v "" where v = 0xB1000000
 emitToken (CONSOLEWRITE n) = "32'h" ++ showHex v "" where v = 0xB2000000 + n

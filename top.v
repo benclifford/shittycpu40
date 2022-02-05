@@ -125,10 +125,8 @@ module top (
             pc <= pc + 1;
             instr_phase <= 2; // go into wait-before-phase 0 state
           end
-          if(instr == 32'h30000000) begin
-            pc <= 0;
-            instr_phase <= 0;
-          end
+          // Instruction prefix h30000000 is unused: this used to be JUMPZERO, which is placed by LOAD 0, RET
+          // and more flexibly, LOAD <somewhere else>, RET
           if( (instr & 32'hF0000000) == 32'h40000000) begin // subtract scratch immediate
             scratch <= scratch - (instr & 32'h0FFFFFFF);
             pc <= pc + 1;
