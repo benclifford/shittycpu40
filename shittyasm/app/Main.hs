@@ -4,6 +4,7 @@ module Main where
 
 import Lib
 import Control.Monad.State.Lazy
+import Data.Char
 import Numeric (showHex)
 
 data Token = LOAD Int | LED Bool | SLEEP Int | DECR Int | JUMPBACKNZ Int | DROP | RET | GOSUB Int | CONSOLEUARTINIT | CONSOLEWRITE Int | TONEGEN Int
@@ -65,6 +66,7 @@ myprog :: State ResolverState ()
 myprog = mdo
 
     i $ CONSOLEUARTINIT
+    i $ GOSUB print_banner
     i $ GOSUB initbeeps
     i $ TONEGEN 0
 
@@ -72,7 +74,7 @@ myprog = mdo
     i $ LOAD 3
 
     outer_loop <- here
-    i $ CONSOLEWRITE 83 -- 83 is the code for Y - could write haskell compile time code for this...
+    i $ CONSOLEWRITE (ord 'Y')
     i $ LOAD 5
 
     middle_loop <- here
@@ -96,7 +98,7 @@ myprog = mdo
     jumpbacknz_absolute outer_loop
 
     i $ DROP
-    i $ CONSOLEWRITE 82 -- 82 is the code for R - could write haskell compile time code for this...
+    i $ CONSOLEWRITE (ord 'R')
     i $ SLEEP 0x5000000
     i $ LOAD restart
     i $ RET -- RET >> LOAD = GOTO
@@ -122,3 +124,8 @@ myprog = mdo
     i $ SLEEP 8000000
     i $ TONEGEN 0
     i $ RET
+
+    print_banner <- here
+    forM_ "ShittyFirmware40 -- Ben Clifford, benc@hawaga.org.uk\n" (i . CONSOLEWRITE . ord)
+    i $ RET
+
