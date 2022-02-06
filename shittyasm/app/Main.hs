@@ -1,3 +1,5 @@
+{-# Language RecursiveDo #-}
+
 module Main where
 
 import Lib
@@ -34,6 +36,11 @@ i token = do
   s <- get
   put (s ++ [token])
 
+here :: State ResolverState Int
+here = do
+  s <- get
+  return (length s)
+
 codify :: Token -> Int
 codify (LOAD n) = 0x60000000 + n
 codify (SLEEP n) = 0x10000000 + n
@@ -49,9 +56,9 @@ codify (TONEGEN n) = 0xC0000000 + n
 codify t = error $ "non-emittable token " ++ show t
 
 myprog :: State ResolverState ()
-myprog = do
+myprog = mdo
     i $ CONSOLEUARTINIT
-    i $ GOSUB 30
+    i $ GOSUB initbeeps
     i $ TONEGEN 0
     i $ LOAD 3
     i $ CONSOLEWRITE 83 -- 83 is the code for Y - could write haskell compile time code for this...
@@ -80,6 +87,7 @@ myprog = do
     i $ LED False
     i $ SLEEP 0x80000
     i $ RET
+    initbeeps <- here
     i $ LOAD 3
     i $ TONEGEN 0x4000
     i $ SLEEP 1600000
