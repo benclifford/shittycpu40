@@ -188,13 +188,6 @@ module top (
             console_dat_di <= instr & 32'h000000FF;
             pc <= pc + 1;
             instr_phase <= 62; // pulse uart data write and wait for response
-/*
-      .reg_dat_we (console_dat_we),
-      .reg_dat_re (console_dat_re),
-      .reg_dat_di (console_dat_di),
-      .reg_dat_do (console_dat_do),
-      .reg_dat_wait (console_dat_wait)
-*/
           end
           if( (instr & 32'hF0000000) == 32'hC0000000) begin   // set tonegen divider
             tonegen_divider <= instr & 32'h0FFFFFFF;
