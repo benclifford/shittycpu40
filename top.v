@@ -153,7 +153,6 @@ module top (
           end
           // Instruction prefix h80000000 is unused: this used to be PUSH
           if( (instr & 32'hF0000000) == 32'h90000000) begin // push stack head down, and put the next-step PC in the top (aka GOSUB) in the new scratch space
-            // compare with impl of 0x8.. instruction which leaves the space empty -- should be identical apart from messing with PC and the empty scratch cell.
             general_wdata <= scratch;
             scratchstack_addr <= scratchsp;
             scratchsp <= scratchsp + 1;
