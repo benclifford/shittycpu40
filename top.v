@@ -32,6 +32,11 @@ module top (
 
     reg [31:0] scratch; // simple register file of 1 register... elaborate later
 
+    // this wdata register can go to all of the peripherals, as it is only read
+    // by a peripheral when the relevant enable signal is used.
+
+    reg [31:0] general_wdata;
+
     // reg [31:0] scratchstack[128]; // scratch stack aka data stack
 
     // TODO: this is only 16 bits - a stack cell is 32 bits so I need 2
@@ -41,14 +46,13 @@ module top (
 
     cellram_scratch scratchstackram (
       .CLK (CLK),
-      .WDATA (scratchstack_wdata),
+      .WDATA (general_wdata),
       .ADDR (scratchstack_addr),
       .RDATA (scratchstack_rdata),
       .WEN (scratchstack_wen)
 
     );
 
-    reg [31:0] scratchstack_wdata;
     wire [31:0] scratchstack_rdata;
     reg [7:0] scratchstack_addr;
     reg scratchstack_wen;
@@ -61,12 +65,10 @@ module top (
     wire console_resetn = rst_delay == 0;
 
     reg [3:0] console_div_we = 0;
-    reg [31:0] console_div_di = 0;
     wire [31:0] console_div_do;
 
     reg console_dat_we = 0;
     reg console_dat_re = 0;
-    reg [31:0] console_dat_di = 0;
     wire [31:0] console_dat_do;
     wire console_dat_wait;
 
@@ -76,23 +78,22 @@ module top (
       .ser_tx (PIN_1),
       .ser_rx (PIN_2),
       .reg_div_we (console_div_we),
-      .reg_div_di (console_div_di),
+      .reg_div_di (general_wdata),
       .reg_div_do (console_div_do),
       .reg_dat_we (console_dat_we),
       .reg_dat_re (console_dat_re),
-      .reg_dat_di (console_dat_di),
+      .reg_dat_di (general_wdata),
       .reg_dat_do (console_dat_do),
       .reg_dat_wait (console_dat_wait)
     );
 
 
-    reg [31:0] tonegen_divider;
     reg tonegen_we = 0;
 
     tonegen speaker (
         .clk (CLK),
         .speaker (PIN_4),
-        .cfg_divider (tonegen_divider),
+        .cfg_divider (general_wdata),
         .cfg_we (tonegen_we)
     );
 
@@ -142,7 +143,7 @@ module top (
           end
           if( (instr & 32'hF0000000) == 32'h60000000) begin // load scratch immediate
             scratch <= instr & 32'h0FFFFFFF;
-            scratchstack_wdata <= scratch;
+            general_wdata <= scratch;
             scratchstack_addr <= scratchsp;
             scratchsp <= scratchsp + 1;
             pc <= pc + 1;
@@ -158,7 +159,7 @@ module top (
           // Instruction prefix h80000000 is unused: this used to be PUSH
           if( (instr & 32'hF0000000) == 32'h90000000) begin // push stack head down, and put the next-step PC in the top (aka GOSUB) in the new scratch space
             // compare with impl of 0x8.. instruction which leaves the space empty -- should be identical apart from messing with PC and the empty scratch cell.
-            scratchstack_wdata <= scratch;
+            general_wdata <= scratch;
             scratchstack_addr <= scratchsp;
             scratchsp <= scratchsp + 1;
             instr_phase <= 3;
@@ -174,7 +175,7 @@ module top (
             instr_phase <= 4;
           end
           if( (instr & 32'hFF000000) == 32'hB1000000) begin   // B1  == console uart init - write to UART cfg divider register.
-            console_div_di <= 53333; // I would like this to be under program control, eg pop the value from scratch
+            general_wdata <= 53333; // I would like this to be under program control, eg pop the value from scratch
                                      // it's computed as 16MHz / baudrate = divisor.
                                      // 16Mhz / 53333 should give 300 baud
             pc <= pc + 1;
@@ -185,12 +186,12 @@ module top (
             // put value on write register
             // take write high
             // wait until uart says its done
-            console_dat_di <= instr & 32'h000000FF;
+            general_wdata <= instr & 32'h000000FF;
             pc <= pc + 1;
             instr_phase <= 62; // pulse uart data write and wait for response
           end
           if( (instr & 32'hF0000000) == 32'hC0000000) begin   // set tonegen divider
-            tonegen_divider <= instr & 32'h0FFFFFFF;
+            general_wdata <= instr & 32'h0FFFFFFF;
             pc <= pc + 1;
             instr_phase <= 70;
           end
