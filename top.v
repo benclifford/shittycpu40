@@ -109,13 +109,8 @@ module top (
         end
         if(instr_phase == 1) begin
           // when we hit here we should have the instruction to execute in instr
-          if(instr == 32'h20000001) begin   // LED on
-            led <= 1;
-            pc <= pc + 1;
-            instr_phase <= 0;
-          end
-          if(instr == 32'h20000000) begin   // LED off
-            led <= 0;
+          if((instr & 32'hF0000000) == 32'h20000000) begin   // LED-immediate to LSB of instruction
+            led <= instr[0];
             pc <= pc + 1;
             instr_phase <= 0;
           end
