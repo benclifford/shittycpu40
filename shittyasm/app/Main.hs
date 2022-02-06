@@ -41,6 +41,12 @@ here = do
   s <- get
   return (length s)
 
+jumpbacknz_absolute :: Int -> State ResolverState ()
+jumpbacknz_absolute target_abs_addr = do
+  instr_abs_addr <- here
+  let rel = instr_abs_addr - target_abs_addr
+  i $ JUMPBACKNZ rel
+
 codify :: Token -> Int
 codify (LOAD n) = 0x60000000 + n
 codify (SLEEP n) = 0x10000000 + n
@@ -57,44 +63,53 @@ codify t = error $ "non-emittable token " ++ show t
 
 myprog :: State ResolverState ()
 myprog = mdo
+
     i $ CONSOLEUARTINIT
     i $ GOSUB initbeeps
     i $ TONEGEN 0
+    restart <- here
     i $ LOAD 3
+    outer_loop <- here
     i $ CONSOLEWRITE 83 -- 83 is the code for Y - could write haskell compile time code for this...
     i $ LOAD 5
+    middle_loop <- here
     i $ LOAD 20
-    i $ GOSUB 25
+    inner_loop <- here
+    i $ GOSUB pulse_leds
     i $ DECR 1
-    i $ JUMPBACKNZ 2
+    jumpbacknz_absolute inner_loop
     i $ DROP
     i $ SLEEP 0x1000000
     i $ DECR 1
-    i $ JUMPBACKNZ 7
+    jumpbacknz_absolute middle_loop
     i $ DROP
     i $ LED True
     i $ SLEEP 0x1000000
     i $ LED False
     i $ DECR 1
-    i $ JUMPBACKNZ 15
+    jumpbacknz_absolute outer_loop
     i $ DROP
     i $ CONSOLEWRITE 82 -- 82 is the code for R - could write haskell compile time code for this...
     i $ SLEEP 0x5000000
-    i $ LOAD 3
+    i $ LOAD restart
     i $ RET -- RET >> LOAD = GOTO
+
+    pulse_leds <- here
     i $ LED True
     i $ SLEEP 0x80000
     i $ LED False
     i $ SLEEP 0x80000
     i $ RET
+
     initbeeps <- here
     i $ LOAD 3
+    initbeeps_loop <- here
     i $ TONEGEN 0x4000
     i $ SLEEP 1600000
     i $ TONEGEN 0
     i $ SLEEP 14400000
     i $ DECR 1
-    i $ JUMPBACKNZ 5
+    jumpbacknz_absolute initbeeps_loop
     i $ DROP
     i $ TONEGEN 0x4000
     i $ SLEEP 8000000
