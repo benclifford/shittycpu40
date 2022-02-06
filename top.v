@@ -321,7 +321,7 @@ module tonegen (
 );
 
     reg [31:0] phase;
-    reg [31:0] reg_cfg_divider = 8000;
+    reg [31:0] reg_cfg_divider = 0;
 
     always @(posedge clk) begin
         if(cfg_we) begin
