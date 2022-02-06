@@ -67,27 +67,34 @@ myprog = mdo
     i $ CONSOLEUARTINIT
     i $ GOSUB initbeeps
     i $ TONEGEN 0
+
     restart <- here
     i $ LOAD 3
+
     outer_loop <- here
     i $ CONSOLEWRITE 83 -- 83 is the code for Y - could write haskell compile time code for this...
     i $ LOAD 5
+
     middle_loop <- here
     i $ LOAD 20
+
     inner_loop <- here
     i $ GOSUB pulse_leds
     i $ DECR 1
     jumpbacknz_absolute inner_loop
+
     i $ DROP
     i $ SLEEP 0x1000000
     i $ DECR 1
     jumpbacknz_absolute middle_loop
+
     i $ DROP
     i $ LED True
     i $ SLEEP 0x1000000
     i $ LED False
     i $ DECR 1
     jumpbacknz_absolute outer_loop
+
     i $ DROP
     i $ CONSOLEWRITE 82 -- 82 is the code for R - could write haskell compile time code for this...
     i $ SLEEP 0x5000000
