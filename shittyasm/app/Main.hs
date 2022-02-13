@@ -48,6 +48,10 @@ jumpbacknz_absolute target_abs_addr = do
   let rel = instr_abs_addr - target_abs_addr
   i $ JUMPBACKNZ rel
 
+console_print_str :: String -> State ResolverState ()
+console_print_str msg = 
+  forM_ msg (i . CONSOLEWRITE . ord)
+
 codify :: Token -> Int
 codify (LOAD n) = 0x60000000 + n
 codify (SLEEP n) = 0x10000000 + n
@@ -74,7 +78,7 @@ myprog = mdo
     i $ LOAD 3
 
     outer_loop <- here
-    i $ CONSOLEWRITE (ord 'Y')
+    console_print_str "Outer loop body start.\n"
     i $ LOAD 5
 
     middle_loop <- here
@@ -98,7 +102,7 @@ myprog = mdo
     jumpbacknz_absolute outer_loop
 
     i $ DROP
-    i $ CONSOLEWRITE (ord 'R')
+    console_print_str "Outer loop completed.\n"
     i $ SLEEP 0x5000000
     i $ LOAD restart
     i $ RET -- RET >> LOAD = GOTO
@@ -126,6 +130,6 @@ myprog = mdo
     i $ RET
 
     print_banner <- here
-    forM_ "ShittyFirmware40 -- Ben Clifford, benc@hawaga.org.uk\n" (i . CONSOLEWRITE . ord)
+    console_print_str "ShittyFirmware40 -- Ben Clifford, benc@hawaga.org.uk\n"
     i $ RET
 
