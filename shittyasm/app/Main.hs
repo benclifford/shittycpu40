@@ -66,8 +66,47 @@ codify (CONSOLEWRITE n) = 0xB2000000 + n
 codify (TONEGEN n) = 0xC0000000 + n
 codify t = error $ "non-emittable token " ++ show t
 
+
 myprog :: State ResolverState ()
 myprog = mdo
+    i $ CONSOLEUARTINIT
+    i $ GOSUB print_banner
+    outer_loop <- here
+    i $ GOSUB interact_inner
+    goto outer_loop
+
+    -- This needs importing in just once.
+    -- It's safe to import multiple times but wasteful of
+    -- space. Is there a way to implement this single-import
+    -- in an easy way? mdo makes it easy to have locally
+    -- scoped symbols... but how do I do optional-global
+    -- symbols?
+    interact_inner <- define_interact_inner
+    print_banner <- here
+    console_print_str "ShittyFirmware40/interactive -- Ben Clifford, benc@hawaga.org.uk\n"
+    i $ RET
+
+
+-- could factorise out the returning of start and putting a RET on the end
+-- into a mkSubroutine helper
+define_interact_inner = mkSubroutine $ do
+    console_print_str "$ "
+    i $ SLEEP 0x1000000
+    console_print_str "\n"
+    i $ RET
+
+mkSubroutine code = do
+    start <- here
+    code
+    return start
+
+goto :: Int -> State ResolverState ()
+goto a = do
+    i $ LOAD a
+    i $ RET
+
+myprog_loop_flash :: State ResolverState ()
+myprog_loop_flash = mdo
 
     i $ CONSOLEUARTINIT
     i $ GOSUB print_banner
