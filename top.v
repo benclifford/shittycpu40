@@ -101,6 +101,11 @@ module top (
     always @(posedge CLK) begin
       if(rst_delay == 0) begin
 
+        if(instr_phase == 1) begin
+            led <= 1;
+        end else begin
+            led <= 0;
+        end
 
         if(instr_phase == 0) begin
             // load an instruction from the PC address
@@ -187,11 +192,10 @@ module top (
           if( (instr & 32'hFF000000) == 32'hB3000000) begin   // B3 = read char from console
             // will read from the console without blocking, push that byte onto the stack
             // If no valid data, the UART gives a 0 byte.
-            scratch <= console_data_do;
+            scratch <= console_dat_do;
             general_wdata <= scratch;
             scratchstack_addr <= scratchsp;
             scratchsp <= scratchsp + 1;
-            // TODO: we need to initiate the actual write to scratch I think (see how phase 3 works for GOSUB)
 
             // This is assuming that the UART is always supplying a data value on console_data_do
             // and doesn't need the pulse first to read; instead just to clear the value for the
@@ -205,7 +209,18 @@ module top (
             pc <= pc + 1;
             instr_phase <= 70;
           end
-        end
+          if( (instr & 32'hFF000000) == 32'hB4000000) begin   // B4 = write to console - from stack
+            // put high uart write, wait till its done, uart low
+            // i wonder if i can put the UART high here too?
+            // or if i have to wait one cycle? my understanding of
+            // when things are allowed to change is a bit fuzzy.
+            general_wdata <= scratch & 32'h000000FF;
+            scratchstack_addr <= scratchsp - 1;
+            scratchsp <= scratchsp - 1;
+            instr_phase <= 90; // crossref phase 4 for stack handling
+            pc <= pc + 1;
+          end
+        end  // end of phase 1 decoding
         if(instr_phase == 2) begin // someones requested a delay before going back to phase 0
             if(delay_countdown == 0) begin
                 instr_phase <= 0;
@@ -265,6 +280,18 @@ module top (
         if(instr_phase == 81) begin // end pulse for stack write
             scratchstack_wen <= 0;
             instr_phase <= 0; // this should just put console_dat_re back to 0
+        end
+        if(instr_phase == 90) begin // wait states for stack read in UARTWRITESTACK
+            console_dat_we <= 1;  // enable console write
+            instr_phase <= 91;
+        end
+        if(instr_phase == 91 && !console_dat_wait) begin // wait states for stack read in UARTWRITESTACK
+            instr_phase <= 92;
+            console_dat_we <= 0; // maybe this has to happen as soon as console_dat_wait goes low?
+        end
+        if(instr_phase == 92) begin // someones requested stack read
+            scratch <= scratchstack_rdata;
+            instr_phase <= 0; // now wait for UART to be completed
         end
 
       end else begin
