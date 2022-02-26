@@ -175,7 +175,7 @@ module top (
             pc <= pc + 1;
             instr_phase <= 6; // pulse register write.
           end
-          if( (instr & 32'hFF000000) == 32'hB2000000) begin   // B2 = write to console
+          if( (instr & 32'hFF000000) == 32'hB2000000) begin   // B2 = write to console - immediate
             // this is multistep:
             // put value on write register
             // take write high
@@ -183,6 +183,22 @@ module top (
             general_wdata <= instr & 32'h000000FF;
             pc <= pc + 1;
             instr_phase <= 62; // pulse uart data write and wait for response
+          end
+          if( (instr & 32'hFF000000) == 32'hB3000000) begin   // B3 = read char from console
+            // will read from the console without blocking, push that byte onto the stack
+            // If no valid data, the UART gives a 0 byte.
+            scratch <= console_data_do;
+            general_wdata <= scratch;
+            scratchstack_addr <= scratchsp;
+            scratchsp <= scratchsp + 1;
+            // TODO: we need to initiate the actual write to scratch I think (see how phase 3 works for GOSUB)
+
+            // This is assuming that the UART is always supplying a data value on console_data_do
+            // and doesn't need the pulse first to read; instead just to clear the value for the
+            // next character to arrive.
+            console_dat_re <= 1;
+            pc <= pc + 1;
+            instr_phase <= 80; // this should just put console_dat_re back to 0
           end
           if( (instr & 32'hF0000000) == 32'hC0000000) begin   // set tonegen divider
             general_wdata <= instr & 32'h0FFFFFFF;
@@ -240,6 +256,15 @@ module top (
         if(instr_phase == 71) begin // pulse write for tonegen
             tonegen_we <= 0;
             instr_phase <= 0;
+        end
+        if(instr_phase == 80) begin // end pulse write for uart read, start write pulse for stack write
+            console_dat_re <= 0;
+            scratchstack_wen <= 1;
+            instr_phase <= 81; // end-write
+        end
+        if(instr_phase == 81) begin // end pulse for stack write
+            scratchstack_wen <= 0;
+            instr_phase <= 0; // this should just put console_dat_re back to 0
         end
 
       end else begin

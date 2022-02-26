@@ -7,7 +7,7 @@ import Control.Monad.State.Lazy
 import Data.Char
 import Numeric (showHex)
 
-data Token = LOAD Int | LED Bool | SLEEP Int | DECR Int | JUMPBACKNZ Int | DROP | RET | GOSUB Int | CONSOLEUARTINIT | CONSOLEWRITE Int | TONEGEN Int
+data Token = LOAD Int | LED Bool | SLEEP Int | DECR Int | JUMPBACKNZ Int | DROP | RET | GOSUB Int | CONSOLEUARTINIT | CONSOLEWRITE Int | CONSOLEREAD | TONEGEN Int
   deriving Show
 
 main :: IO ()
@@ -63,6 +63,7 @@ codify DROP = 0x70000000
 codify RET = 0xA0000000
 codify CONSOLEUARTINIT = 0xB1000000
 codify (CONSOLEWRITE n) = 0xB2000000 + n
+codify (CONSOLEREAD) = 0xB3000000
 codify (TONEGEN n) = 0xC0000000 + n
 codify t = error $ "non-emittable token " ++ show t
 
@@ -91,6 +92,13 @@ myprog = mdo
 -- into a mkSubroutine helper
 define_interact_inner = mkSubroutine $ do
     console_print_str "$ "
+    -- do a read and immediate discard which should basically
+    -- do nothing, but at least test out the verilog a bit.
+    console_print_str "r"
+    i $ CONSOLEREAD
+    console_print_str "d"
+    i $ DROP
+    console_print_str "s"
     i $ SLEEP 0x1000000
     console_print_str "\n"
     i $ RET
