@@ -177,15 +177,6 @@ module top (
             pc <= pc + 1;
             instr_phase <= 6; // pulse register write.
           end
-          if( (instr & 32'hFF000000) == 32'hB2000000) begin   // B2 = write to console - immediate
-            // this is multistep:
-            // put value on write register
-            // take write high
-            // wait until uart says its done
-            general_wdata <= instr & 32'h000000FF;
-            pc <= pc + 1;
-            instr_phase <= 62; // pulse uart data write and wait for response
-          end
           if( (instr & 32'hFF000000) == 32'hB3000000) begin   // B3 = read char from console
             // will read from the console without blocking, push that byte onto the stack
             // If no valid data, the UART gives a 0 byte.
@@ -238,14 +229,6 @@ module top (
         end
         if(instr_phase == 61) begin // unpulse clock divisor write
             console_div_we <= 0;
-            instr_phase <= 100;
-        end
-        if(instr_phase == 62) begin // uart write
-            console_dat_we <= 1;
-            instr_phase <= 63;
-        end
-        if(instr_phase == 63 && !console_dat_wait) begin // wait for UART to respond...
-            console_dat_we <= 0;
             instr_phase <= 100;
         end
         if(instr_phase == 70) begin // pulse write for tonegen

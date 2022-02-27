@@ -7,7 +7,7 @@ import Control.Monad.State.Lazy
 import Data.Char
 import Numeric (showHex)
 
-data Token = LOAD Int | LED Bool | SLEEP Int | DECR Int | JUMPBACKNZ Int | DROP | RET | GOSUB Int | CONSOLEUARTINIT | CONSOLEWRITE Int | CONSOLEWRITESTACK | CONSOLEREAD | TONEGEN Int
+data Token = LOAD Int | LED Bool | SLEEP Int | DECR Int | JUMPBACKNZ Int | DROP | RET | GOSUB Int | CONSOLEUARTINIT | CONSOLEWRITESTACK | CONSOLEREAD | TONEGEN Int
   deriving Show
 
 main :: IO ()
@@ -50,7 +50,9 @@ jumpbacknz_absolute target_abs_addr = do
 
 console_print_str :: String -> State ResolverState ()
 console_print_str msg = 
-  forM_ msg (i . CONSOLEWRITE . ord)
+  forM_ msg $ \c -> do
+    i $ LOAD (ord c)
+    i $ CONSOLEWRITESTACK 
 
 codify :: Token -> Int
 codify (LOAD n) = 0x60000000 + n
@@ -62,7 +64,6 @@ codify (LED b) = 0x20000000 + n where n = if b then 1 else 0
 codify DROP = 0x70000000
 codify RET = 0xA0000000
 codify CONSOLEUARTINIT = 0xB1000000
-codify (CONSOLEWRITE n) = 0xB2000000 + n
 codify (CONSOLEREAD) = 0xB3000000
 codify (CONSOLEWRITESTACK) = 0xB4000000
 codify (TONEGEN n) = 0xC0000000 + n
