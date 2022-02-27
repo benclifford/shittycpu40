@@ -43,11 +43,6 @@ module top (
 
     // reg [31:0] scratchstack[128]; // scratch stack aka data stack
 
-    // TODO: this is only 16 bits - a stack cell is 32 bits so I need 2
-    // also its "only" 256 cells... maybe i want access to the whole ram, not
-    // a distinct stack RAM? Although before I was only expecting a stack of
-    // 128 cells...
-
     cellram_scratch scratchstackram (
       .CLK (CLK),
       .WDATA (general_wdata),
