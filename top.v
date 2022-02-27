@@ -24,7 +24,7 @@ module top (
 
     reg [31:0] pc;  // program counter
 
-    reg [7:0] instr_phase; // phase through instruction execution
+    reg [6:0] instr_phase; // phase through instruction execution
 
     reg [31:0] instr;
 
@@ -110,7 +110,7 @@ module top (
           if((instr & 32'hF0000000) == 32'h20000000) begin   // LED-immediate to LSB of instruction
             led <= scratch[0];
             pc <= pc + 1;
-            instr_phase <= 100;
+            instr_phase <= 32;
             pop_phase <= 1;
           end
           // any instruction with top nibble 1 means "sleep immediate"
@@ -126,7 +126,7 @@ module top (
           if( (instr & 32'hF0000000) == 32'h40000000) begin // subtract scratch immediate
             scratch <= scratch - (instr & 32'h0FFFFFFF);
             pc <= pc + 1;
-            instr_phase <= 100;
+            instr_phase <= 32;
           end
            if( (instr & 32'hF0000000) == 32'h50000000) begin // jump back if non-zero, relative immediate 5
             if (scratch != 0) begin
@@ -134,7 +134,7 @@ module top (
             end else begin
               pc <= pc + 1;
             end
-            instr_phase <= 100;
+            instr_phase <= 32;
           end
           if( (instr & 32'hF0000000) == 32'h60000000) begin // load scratch immediate
             scratch <= instr & 32'h0FFFFFFF;
@@ -148,7 +148,7 @@ module top (
             pc <= pc + 1;
 
             // read scratch ram data into scratch
-            instr_phase <= 100;
+            instr_phase <= 32;
             pop_phase <= 1;
           end
           // Instruction prefix h80000000 is unused: this used to be PUSH
@@ -164,7 +164,7 @@ module top (
           if( (instr & 32'hF0000000) == 32'hA0000000) begin // RET to on-stack new PC (aka GOTO)... like DROP but doing PC stuff with the otherwise-discarded value
             pc <= scratch;
 
-            instr_phase <= 100;
+            instr_phase <= 32;
             pop_phase <= 1;
           end
           if( (instr & 32'hFF000000) == 32'hB1000000) begin   // B1  == console uart init - write to UART cfg divider register.
@@ -208,7 +208,7 @@ module top (
         end  // end of phase 1 decoding
         if(instr_phase == 2) begin // someones requested a delay before going back to phase 0
             if(delay_countdown == 0) begin
-                instr_phase <= 100;
+                instr_phase <= 32;
             end else begin
                 delay_countdown <= delay_countdown - 1;
             end
@@ -219,7 +219,7 @@ module top (
         end
         if(instr_phase == 4) begin // end write
             scratchstack_wen <= 0;
-            instr_phase <= 100;
+            instr_phase <= 32;
         end
         if(instr_phase == 10) begin // someones requested console uart clock divisor write
             console_div_we <= 4'b1111;
@@ -227,7 +227,7 @@ module top (
         end
         if(instr_phase == 11) begin // unpulse clock divisor write
             console_div_we <= 0;
-            instr_phase <= 100;
+            instr_phase <= 32;
         end
         if(instr_phase == 12) begin // pulse write for tonegen
             tonegen_we <= 1;
@@ -235,7 +235,7 @@ module top (
         end
         if(instr_phase == 13) begin // pulse write for tonegen
             tonegen_we <= 0;
-            instr_phase <= 100;
+            instr_phase <= 32;
         end
         if(instr_phase == 14) begin // end pulse write for uart read, start write pulse for stack write
             console_dat_re <= 0;
@@ -244,17 +244,17 @@ module top (
         end
         if(instr_phase == 15) begin // end pulse for stack write
             scratchstack_wen <= 0;
-            instr_phase <= 100; // this should just put console_dat_re back to 0
+            instr_phase <= 32; // this should just put console_dat_re back to 0
         end
         if(instr_phase == 16) begin // wait states for stack read in UARTWRITESTACK
             console_dat_we <= 1;  // enable console write
             instr_phase <= 17;
         end
         if(instr_phase == 17 && !console_dat_wait) begin // wait states for stack read in UARTWRITESTACK
-            instr_phase <= 100;
+            instr_phase <= 32;
             console_dat_we <= 0; // maybe this has to happen as soon as console_dat_wait goes low?
         end
-        if(instr_phase == 100 && pop_phase == 0) begin
+        if(instr_phase == 32 && pop_phase == 0) begin
             // waits for both main instruction to end and for pop_phase to end
 
             instr_phase <= 0;  // for now, straight back to the start
