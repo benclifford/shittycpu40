@@ -56,17 +56,17 @@ console_print_str msg =
 
 codify :: Token -> Int
 codify (LOAD n) = 0x60000000 + n
-codify SLEEP = 0x10000000
 codify (DECR n) = 0x40000000 + n
 codify (JUMPBACKNZ n) = 0x50000000 + n
 codify (GOSUB n) = 0x90000000 + n
-codify LED = 0x20000000
 codify DROP = 0x70000000
 codify RET = 0xA0000000
 codify CONSOLEUARTINIT = 0xB1000000
 codify (CONSOLEREAD) = 0xB3000000
 codify (CONSOLEWRITESTACK) = 0xB4000000
 codify TONEGEN = 0xC0000000
+codify SLEEP = 0xC1000000
+codify LED = 0xC2000000
 codify t = error $ "non-emittable token " ++ show t
 
 myprog = myprog_loop_flash
