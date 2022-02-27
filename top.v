@@ -116,9 +116,10 @@ module top (
           // any instruction with top nibble 1 means "sleep immediate"
           // with a maximum of around 16 seconds delay possible with 16 MHz clock
           if( (instr & 32'hF0000000) == 32'h10000000) begin
-            delay_countdown <= instr & 32'h0FFFFFFF;
+            delay_countdown <= scratch;
             pc <= pc + 1;
             instr_phase <= 2; // go into wait-before-phase 0 state
+            pop_phase <= 1;
           end
           // Instruction prefix h30000000 is unused: this used to be JUMPZERO, which is placed by LOAD 0, RET
           // and more flexibly, LOAD <somewhere else>, RET

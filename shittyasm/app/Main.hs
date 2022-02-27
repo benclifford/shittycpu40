@@ -7,7 +7,7 @@ import Control.Monad.State.Lazy
 import Data.Char
 import Numeric (showHex)
 
-data Token = LOAD Int | LED | SLEEP Int | DECR Int | JUMPBACKNZ Int | DROP | RET | GOSUB Int | CONSOLEUARTINIT | CONSOLEWRITESTACK | CONSOLEREAD | TONEGEN Int
+data Token = LOAD Int | LED | SLEEP | DECR Int | JUMPBACKNZ Int | DROP | RET | GOSUB Int | CONSOLEUARTINIT | CONSOLEWRITESTACK | CONSOLEREAD | TONEGEN Int
   deriving Show
 
 main :: IO ()
@@ -56,7 +56,7 @@ console_print_str msg =
 
 codify :: Token -> Int
 codify (LOAD n) = 0x60000000 + n
-codify (SLEEP n) = 0x10000000 + n
+codify SLEEP = 0x10000000
 codify (DECR n) = 0x40000000 + n
 codify (JUMPBACKNZ n) = 0x50000000 + n
 codify (GOSUB n) = 0x90000000 + n
@@ -144,14 +144,16 @@ myprog_loop_flash = mdo
     jumpbacknz_absolute inner_loop
 
     i $ DROP
-    i $ SLEEP 0x1000000
+    i $ LOAD 0x1000000
+    i $ SLEEP
     i $ DECR 1
     jumpbacknz_absolute middle_loop
 
     i $ DROP
     i $ LOAD 1
     i $ LED
-    i $ SLEEP 0x1000000
+    i $ LOAD 0x1000000
+    i $ SLEEP
     i $ LOAD 0
     i $ LED
     i $ DECR 1
@@ -159,31 +161,37 @@ myprog_loop_flash = mdo
 
     i $ DROP
     console_print_str "Outer loop completed.\n"
-    i $ SLEEP 0x5000000
+    i $ LOAD 0x5000000
+    i $ SLEEP
     i $ LOAD restart
     i $ RET -- RET >> LOAD = GOTO
 
     pulse_leds <- here
     i $ LOAD 1
     i $ LED
-    i $ SLEEP 0x80000
+    i $ LOAD 0x80000
+    i $ SLEEP
     i $ LOAD 0
     i $ LED
-    i $ SLEEP 0x80000
+    i $ LOAD 0x80000
+    i $ SLEEP
     i $ RET
 
     initbeeps <- here
     i $ LOAD 3
     initbeeps_loop <- here
     i $ TONEGEN 0x4000
-    i $ SLEEP 1600000
+    i $ LOAD 1600000
+    i $ SLEEP
     i $ TONEGEN 0
-    i $ SLEEP 14400000
+    i $ LOAD 14400000
+    i $ SLEEP
     i $ DECR 1
     jumpbacknz_absolute initbeeps_loop
     i $ DROP
     i $ TONEGEN 0x4000
-    i $ SLEEP 8000000
+    i $ LOAD 8000000
+    i $ SLEEP
     i $ TONEGEN 0
     i $ RET
 
