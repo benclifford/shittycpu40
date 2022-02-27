@@ -68,9 +68,10 @@ codify (CONSOLEWRITESTACK) = 0xB4000000
 codify (TONEGEN n) = 0xC0000000 + n
 codify t = error $ "non-emittable token " ++ show t
 
+myprog = myprog_loop_flash
 
-myprog :: State ResolverState ()
-myprog = mdo
+myprog_inter :: State ResolverState ()
+myprog_inter = mdo
     i $ CONSOLEUARTINIT
     i $ GOSUB print_banner
     outer_loop <- here

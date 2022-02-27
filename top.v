@@ -112,7 +112,7 @@ module top (
           if((instr & 32'hF0000000) == 32'h20000000) begin   // LED-immediate to LSB of instruction
             led <= instr[0];
             pc <= pc + 1;
-            instr_phase <= 0;
+            instr_phase <= 100;
           end
           // any instruction with top nibble 1 means "sleep immediate"
           // with a maximum of around 16 seconds delay possible with 16 MHz clock
@@ -126,7 +126,7 @@ module top (
           if( (instr & 32'hF0000000) == 32'h40000000) begin // subtract scratch immediate
             scratch <= scratch - (instr & 32'h0FFFFFFF);
             pc <= pc + 1;
-            instr_phase <= 0;
+            instr_phase <= 100;
           end
            if( (instr & 32'hF0000000) == 32'h50000000) begin // jump back if non-zero, relative immediate 5
             if (scratch != 0) begin
@@ -134,7 +134,7 @@ module top (
             end else begin
               pc <= pc + 1;
             end
-            instr_phase <= 0;
+            instr_phase <= 100;
           end
           if( (instr & 32'hF0000000) == 32'h60000000) begin // load scratch immediate
             scratch <= instr & 32'h0FFFFFFF;
@@ -218,7 +218,7 @@ module top (
         end  // end of phase 1 decoding
         if(instr_phase == 2) begin // someones requested a delay before going back to phase 0
             if(delay_countdown == 0) begin
-                instr_phase <= 0;
+                instr_phase <= 100;
             end else begin
                 delay_countdown <= delay_countdown - 1;
             end
@@ -237,11 +237,11 @@ module top (
         end
         if(instr_phase == 42) begin // someones requested stack read
             scratch <= scratchstack_rdata;
-            instr_phase <= 0;
+            instr_phase <= 100;
         end
         if(instr_phase == 5) begin // end write
             scratchstack_wen <= 0;
-            instr_phase <= 0;
+            instr_phase <= 100;
         end
         if(instr_phase == 6) begin // someones requested console uart clock divisor write
             console_div_we <= 4'b1111;
@@ -249,7 +249,7 @@ module top (
         end
         if(instr_phase == 61) begin // unpulse clock divisor write
             console_div_we <= 0;
-            instr_phase <= 0;
+            instr_phase <= 100;
         end
         if(instr_phase == 62) begin // uart write
             console_dat_we <= 1;
@@ -257,7 +257,7 @@ module top (
         end
         if(instr_phase == 63 && !console_dat_wait) begin // wait for UART to respond...
             console_dat_we <= 0;
-            instr_phase <= 0;
+            instr_phase <= 100;
         end
         if(instr_phase == 70) begin // pulse write for tonegen
             tonegen_we <= 1;
@@ -265,7 +265,7 @@ module top (
         end
         if(instr_phase == 71) begin // pulse write for tonegen
             tonegen_we <= 0;
-            instr_phase <= 0;
+            instr_phase <= 100;
         end
         if(instr_phase == 80) begin // end pulse write for uart read, start write pulse for stack write
             console_dat_re <= 0;
@@ -274,7 +274,7 @@ module top (
         end
         if(instr_phase == 81) begin // end pulse for stack write
             scratchstack_wen <= 0;
-            instr_phase <= 0; // this should just put console_dat_re back to 0
+            instr_phase <= 100; // this should just put console_dat_re back to 0
         end
         if(instr_phase == 90) begin // wait states for stack read in UARTWRITESTACK
             console_dat_we <= 1;  // enable console write
@@ -286,7 +286,11 @@ module top (
         end
         if(instr_phase == 92) begin // someones requested stack read
             scratch <= scratchstack_rdata;
-            instr_phase <= 0; // now wait for UART to be completed
+            instr_phase <= 100; // now wait for UART to be completed
+        end
+        if(instr_phase == 100) begin // end of main instruction states
+            instr_phase <= 0;  // for now, straight back to the start
+            // but expect to put post/join handling in here.
         end
 
       end else begin
