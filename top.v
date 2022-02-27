@@ -190,9 +190,10 @@ module top (
             instr_phase <= 80; // this should just put console_dat_re back to 0
           end
           if( (instr & 32'hF0000000) == 32'hC0000000) begin   // set tonegen divider
-            general_wdata <= instr & 32'h0FFFFFFF;
+            general_wdata <= scratch;
             pc <= pc + 1;
             instr_phase <= 70;
+            pop_phase <= 1;
           end
           if( (instr & 32'hFF000000) == 32'hB4000000) begin   // B4 = write to console - from stack
             // put high uart write, wait till its done, uart low

@@ -7,7 +7,7 @@ import Control.Monad.State.Lazy
 import Data.Char
 import Numeric (showHex)
 
-data Token = LOAD Int | LED | SLEEP | DECR Int | JUMPBACKNZ Int | DROP | RET | GOSUB Int | CONSOLEUARTINIT | CONSOLEWRITESTACK | CONSOLEREAD | TONEGEN Int
+data Token = LOAD Int | LED | SLEEP | DECR Int | JUMPBACKNZ Int | DROP | RET | GOSUB Int | CONSOLEUARTINIT | CONSOLEWRITESTACK | CONSOLEREAD | TONEGEN
   deriving Show
 
 main :: IO ()
@@ -66,7 +66,7 @@ codify RET = 0xA0000000
 codify CONSOLEUARTINIT = 0xB1000000
 codify (CONSOLEREAD) = 0xB3000000
 codify (CONSOLEWRITESTACK) = 0xB4000000
-codify (TONEGEN n) = 0xC0000000 + n
+codify TONEGEN = 0xC0000000
 codify t = error $ "non-emittable token " ++ show t
 
 myprog = myprog_loop_flash
@@ -126,7 +126,8 @@ myprog_loop_flash = mdo
     i $ CONSOLEUARTINIT
     i $ GOSUB print_banner
     i $ GOSUB initbeeps
-    i $ TONEGEN 0
+    i $ LOAD 0
+    i $ TONEGEN
 
     restart <- here
     i $ LOAD 3
@@ -180,19 +181,23 @@ myprog_loop_flash = mdo
     initbeeps <- here
     i $ LOAD 3
     initbeeps_loop <- here
-    i $ TONEGEN 0x4000
+    i $ LOAD 0x4000
+    i $ TONEGEN
     i $ LOAD 1600000
     i $ SLEEP
-    i $ TONEGEN 0
+    i $ LOAD 0
+    i $ TONEGEN
     i $ LOAD 14400000
     i $ SLEEP
     i $ DECR 1
     jumpbacknz_absolute initbeeps_loop
     i $ DROP
-    i $ TONEGEN 0x4000
+    i $ LOAD 0x4000
+    i $ TONEGEN
     i $ LOAD 8000000
     i $ SLEEP
-    i $ TONEGEN 0
+    i $ LOAD 0
+    i $ TONEGEN
     i $ RET
 
     print_banner <- here
