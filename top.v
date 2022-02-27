@@ -34,7 +34,8 @@ module top (
     reg [31:0] delay_countdown; // for 1xxxxxxx DELAY instruction
 
 
-    reg [31:0] scratch; // simple register file of 1 register... elaborate later
+    reg [31:0] scratch; // Head of the scratch stack
+    reg [31:0] scratch_next; // 2nd element on the scratch stack
 
     // this wdata register can go to all of the peripherals, as it is only read
     // by a peripheral when the relevant enable signal is used.
@@ -124,7 +125,8 @@ module top (
           end
           if( (instr & 32'hF0000000) == 32'h60000000) begin // load scratch immediate
             scratch <= instr & 32'h0FFFFFFF;
-            general_wdata <= scratch;
+            scratch_next <= scratch;
+            general_wdata <= scratch_next;
             scratchstack_addr <= scratchsp;
             scratchsp <= scratchsp + 1;
             pc <= pc + 1;
@@ -139,13 +141,14 @@ module top (
           end
           // Instruction prefix h80000000 is unused: this used to be PUSH
           if( (instr & 32'hFF000000) == 32'h90000000) begin // push stack head down, and put the next-step PC in the top (aka GOSUB) in the new scratch space
-            general_wdata <= scratch;
+            scratch <= pc + 1;
+            scratch_next <= scratch;
+            general_wdata <= scratch_next;
             scratchstack_addr <= scratchsp;
             scratchsp <= scratchsp + 1;
             instr_phase <= 3;
 
             pc <= instr & 32'h0FFFFFFF;
-            scratch <= pc + 1;
           end
           if( (instr & 32'hFF000000) == 32'hA0000000) begin // RET to on-stack new PC (aka GOTO)... like DROP but doing PC stuff with the otherwise-discarded value
             pc <= scratch;
@@ -164,7 +167,8 @@ module top (
             // will read from the console without blocking, push that byte onto the stack
             // If no valid data, the UART gives a 0 byte.
             scratch <= console_dat_do;
-            general_wdata <= scratch;
+            scratch_next <= scratch;
+            general_wdata <= scratch_next;
             scratchstack_addr <= scratchsp;
             scratchsp <= scratchsp + 1;
 
@@ -275,7 +279,8 @@ module top (
             pop_phase <= 4;
         end
         if(pop_phase == 4) begin // someones requested stack read
-            scratch <= scratchstack_rdata;
+            scratch <= scratch_next;
+            scratch_next <= scratchstack_rdata;
             pop_phase <= 0;
         end
 
