@@ -130,7 +130,7 @@ module top (
             pc <= pc + 1;
             instr_phase <= 3;
           end
-          if( (instr & 32'hF0000000) == 32'h70000000) begin // DROP stack head
+          if( (instr & 32'hFF000000) == 32'h70000000) begin // DROP stack head
             pc <= pc + 1;
 
             // read scratch ram data into scratch
@@ -138,7 +138,7 @@ module top (
             pop_phase <= 1;
           end
           // Instruction prefix h80000000 is unused: this used to be PUSH
-          if( (instr & 32'hF0000000) == 32'h90000000) begin // push stack head down, and put the next-step PC in the top (aka GOSUB) in the new scratch space
+          if( (instr & 32'hFF000000) == 32'h90000000) begin // push stack head down, and put the next-step PC in the top (aka GOSUB) in the new scratch space
             general_wdata <= scratch;
             scratchstack_addr <= scratchsp;
             scratchsp <= scratchsp + 1;
@@ -147,7 +147,7 @@ module top (
             pc <= instr & 32'h0FFFFFFF;
             scratch <= pc + 1;
           end
-          if( (instr & 32'hF0000000) == 32'hA0000000) begin // RET to on-stack new PC (aka GOTO)... like DROP but doing PC stuff with the otherwise-discarded value
+          if( (instr & 32'hFF000000) == 32'hA0000000) begin // RET to on-stack new PC (aka GOTO)... like DROP but doing PC stuff with the otherwise-discarded value
             pc <= scratch;
 
             instr_phase <= 32;
