@@ -28,6 +28,9 @@ module top (
 
     reg [31:0] instr;
 
+    reg [3:0] pop_phase = 0; // phase through stack pop - max 16 states which is probs ok?
+
+
     reg [31:0] delay_countdown; // for 1xxxxxxx DELAY instruction
 
 
@@ -149,7 +152,10 @@ module top (
             scratchsp <= scratchsp - 1;
 
             pc <= pc + 1;
-            instr_phase <= 4; // read scratch ram data into scratch
+
+            // read scratch ram data into scratch
+            instr_phase <= 100;
+            pop_phase <= 1;
           end
           // Instruction prefix h80000000 is unused: this used to be PUSH
           if( (instr & 32'hF0000000) == 32'h90000000) begin // push stack head down, and put the next-step PC in the top (aka GOSUB) in the new scratch space
@@ -166,7 +172,8 @@ module top (
 
             scratchstack_addr <= scratchsp - 1;
             scratchsp <= scratchsp - 1;
-            instr_phase <= 4;
+            instr_phase <= 100;
+            pop_phase <= 1;
           end
           if( (instr & 32'hFF000000) == 32'hB1000000) begin   // B1  == console uart init - write to UART cfg divider register.
             general_wdata <= 53333; // I would like this to be under program control, eg pop the value from scratch
@@ -212,7 +219,8 @@ module top (
             general_wdata <= scratch & 32'h000000FF;
             scratchstack_addr <= scratchsp - 1;
             scratchsp <= scratchsp - 1;
-            instr_phase <= 90; // crossref phase 4 for stack handling
+            instr_phase <= 90;
+            pop_phase <= 1;
             pc <= pc + 1;
           end
         end  // end of phase 1 decoding
@@ -227,18 +235,20 @@ module top (
             scratchstack_wen <= 1;
             instr_phase <= 5; // end-write
         end
-        if(instr_phase == 4) begin // someones requested stack read
+
+        if(pop_phase == 1) begin // someones requested stack read
             // fluffy wait
-            instr_phase <= 41;
+            pop_phase <= 2;
         end
-        if(instr_phase == 41) begin // someones requested stack read
+        if(pop_phase == 2) begin // someones requested stack read
             // fluffy wait
-            instr_phase <= 42;
+            pop_phase <= 3;
         end
-        if(instr_phase == 42) begin // someones requested stack read
+        if(pop_phase == 3) begin // someones requested stack read
             scratch <= scratchstack_rdata;
-            instr_phase <= 100;
+            pop_phase <= 0;
         end
+
         if(instr_phase == 5) begin // end write
             scratchstack_wen <= 0;
             instr_phase <= 100;
@@ -281,14 +291,12 @@ module top (
             instr_phase <= 91;
         end
         if(instr_phase == 91 && !console_dat_wait) begin // wait states for stack read in UARTWRITESTACK
-            instr_phase <= 92;
+            instr_phase <= 100;
             console_dat_we <= 0; // maybe this has to happen as soon as console_dat_wait goes low?
         end
-        if(instr_phase == 92) begin // someones requested stack read
-            scratch <= scratchstack_rdata;
-            instr_phase <= 100; // now wait for UART to be completed
-        end
-        if(instr_phase == 100) begin // end of main instruction states
+        if(instr_phase == 100 && pop_phase == 0) begin
+            // waits for both main instruction to end and for pop_phase to end
+
             instr_phase <= 0;  // for now, straight back to the start
             // but expect to put post/join handling in here.
         end
