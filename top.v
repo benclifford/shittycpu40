@@ -28,7 +28,7 @@ module top (
 
     reg [31:0] instr;
 
-    reg [3:0] pop_phase = 0; // phase through stack pop - max 16 states which is probs ok?
+    reg [1:0] pop_phase = 0; // phase through stack pop - max 16 states which is probs ok?
 
 
     reg [31:0] delay_countdown; // for 1xxxxxxx DELAY instruction
