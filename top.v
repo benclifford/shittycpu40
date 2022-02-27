@@ -13,8 +13,9 @@ module top (
 
     // assign LED = 1; // light the LED just to show somethings happened
     reg [0:0] led = 1;
-    assign LED = led; // can't make LED a register directly...
-    assign PIN_3 = led;
+    // assign LED = led; // can't make LED a register directly...
+    assign LED = led;
+    assign PIN_3 = PIN_2; // mirror serial onto LED
 
     // this reset delay is a known hardware niggle with ice40 loading RAM at initial time - need to wait a few clock cycles after startup. see https://github.com/YosysHQ/icestorm/issues/76
     // with 16000000 delay, works but that is about a second startup time. the github issue talks about 36 clock cycles.

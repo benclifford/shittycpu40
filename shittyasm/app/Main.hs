@@ -83,6 +83,7 @@ myprog = mdo
     -- in an easy way? mdo makes it easy to have locally
     -- scoped symbols... but how do I do optional-global
     -- symbols?
+    console_print_str "$ "
     interact_inner <- define_interact_inner
     print_banner <- here
     console_print_str "ShittyFirmware40/interactive -- Ben Clifford, benc@hawaga.org.uk\n"
@@ -92,19 +93,19 @@ myprog = mdo
 -- could factorise out the returning of start and putting a RET on the end
 -- into a mkSubroutine helper
 define_interact_inner = mkSubroutine $ do
-    console_print_str "$ "
-    console_print_str "u"
-    i $ LOAD 118
-    i $ CONSOLEWRITESTACK
-    console_print_str "w"
-    console_print_str "r"
+    -- console_print_str "u"
+    -- i $ LOAD 118
+    -- i $ CONSOLEWRITESTACK
+
+    -- console_print_str "w"
+    -- console_print_str "r"
     i $ CONSOLEREAD
-    console_print_str "p"
-    console_print_str "q"
+    -- console_print_str "p1"
+    -- console_print_str "q1"
     i $ CONSOLEWRITESTACK
-    console_print_str "s"
-    i $ SLEEP 0x1000000
-    console_print_str "\n"
+    -- console_print_str "s"
+    -- i $ SLEEP 0x1000000
+    -- console_print_str "\n"
     i $ RET
 
 mkSubroutine code = do
