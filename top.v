@@ -172,7 +172,7 @@ module top (
                                      // it's computed as 16MHz / baudrate = divisor.
                                      // 16Mhz / 53333 should give 300 baud
             pc <= pc + 1;
-            instr_phase <= 6; // pulse register write.
+            instr_phase <= 10; // pulse register write.
           end
           if( (instr & 32'hFF000000) == 32'hB3000000) begin   // B3 = read char from console
             // will read from the console without blocking, push that byte onto the stack
@@ -187,12 +187,12 @@ module top (
             // next character to arrive.
             console_dat_re <= 1;
             pc <= pc + 1;
-            instr_phase <= 80; // this should just put console_dat_re back to 0
+            instr_phase <= 14; // this should just put console_dat_re back to 0
           end
           if( (instr & 32'hF0000000) == 32'hC0000000) begin   // set tonegen divider
             general_wdata <= scratch;
             pc <= pc + 1;
-            instr_phase <= 70;
+            instr_phase <= 12;
             pop_phase <= 1;
           end
           if( (instr & 32'hFF000000) == 32'hB4000000) begin   // B4 = write to console - from stack
@@ -201,7 +201,7 @@ module top (
             // or if i have to wait one cycle? my understanding of
             // when things are allowed to change is a bit fuzzy.
             general_wdata <= scratch & 32'h000000FF;
-            instr_phase <= 90;
+            instr_phase <= 16;
             pop_phase <= 1;
             pc <= pc + 1;
           end
@@ -215,42 +215,42 @@ module top (
         end
         if(instr_phase == 3) begin // someones requested stack write
             scratchstack_wen <= 1;
-            instr_phase <= 5; // end-write
+            instr_phase <= 4; // end-write
         end
-        if(instr_phase == 5) begin // end write
+        if(instr_phase == 4) begin // end write
             scratchstack_wen <= 0;
             instr_phase <= 100;
         end
-        if(instr_phase == 6) begin // someones requested console uart clock divisor write
+        if(instr_phase == 10) begin // someones requested console uart clock divisor write
             console_div_we <= 4'b1111;
-            instr_phase <= 61;
+            instr_phase <= 11;
         end
-        if(instr_phase == 61) begin // unpulse clock divisor write
+        if(instr_phase == 11) begin // unpulse clock divisor write
             console_div_we <= 0;
             instr_phase <= 100;
         end
-        if(instr_phase == 70) begin // pulse write for tonegen
+        if(instr_phase == 12) begin // pulse write for tonegen
             tonegen_we <= 1;
-            instr_phase <= 71;
+            instr_phase <= 13;
         end
-        if(instr_phase == 71) begin // pulse write for tonegen
+        if(instr_phase == 13) begin // pulse write for tonegen
             tonegen_we <= 0;
             instr_phase <= 100;
         end
-        if(instr_phase == 80) begin // end pulse write for uart read, start write pulse for stack write
+        if(instr_phase == 14) begin // end pulse write for uart read, start write pulse for stack write
             console_dat_re <= 0;
             scratchstack_wen <= 1;
-            instr_phase <= 81; // end-write
+            instr_phase <= 15; // end-write
         end
-        if(instr_phase == 81) begin // end pulse for stack write
+        if(instr_phase == 15) begin // end pulse for stack write
             scratchstack_wen <= 0;
             instr_phase <= 100; // this should just put console_dat_re back to 0
         end
-        if(instr_phase == 90) begin // wait states for stack read in UARTWRITESTACK
+        if(instr_phase == 16) begin // wait states for stack read in UARTWRITESTACK
             console_dat_we <= 1;  // enable console write
-            instr_phase <= 91;
+            instr_phase <= 17;
         end
-        if(instr_phase == 91 && !console_dat_wait) begin // wait states for stack read in UARTWRITESTACK
+        if(instr_phase == 17 && !console_dat_wait) begin // wait states for stack read in UARTWRITESTACK
             instr_phase <= 100;
             console_dat_we <= 0; // maybe this has to happen as soon as console_dat_wait goes low?
         end
