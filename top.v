@@ -29,6 +29,10 @@ module top (
     reg [31:0] instr;
 
     reg [1:0] pop_phase = 0; // phase through stack pop
+    reg pop_skip_top = 0; // when popping, don't pop over the top of the stack
+                          // used when an instruction wants to pop, but also has
+                          // replaced the top value with a new value.
+                          // eg    ... a b => ... new
 
 
     reg [31:0] delay_countdown; // for 1xxxxxxx DELAY instruction
@@ -139,7 +143,12 @@ module top (
             instr_phase <= 32;
             pop_phase <= 1;
           end
-          // Instruction prefix h80000000 is unused: this used to be PUSH
+          if( (instr & 32'hFF000000) == 32'h80000000) begin // ADD: a b => (a+b)
+            scratch <= scratch + scratch_next;
+            pc <= pc + 1;
+            pop_phase <= 1;
+            pop_skip_top <= 1;
+          end
           if( (instr & 32'hFF000000) == 32'h90000000) begin // push stack head down, and put the next-step PC in the top (aka GOSUB) in the new scratch space
             scratch <= pc + 1;
             scratch_next <= scratch;
@@ -275,9 +284,10 @@ module top (
             pop_phase <= 3;
         end
         if(pop_phase == 3) begin // someones requested stack read
-            scratch <= scratch_next;
+            if (pop_skip_top == 0) scratch <= scratch_next;
             scratch_next <= scratchstack_rdata;
             pop_phase <= 0;
+            pop_skip_top <= 0;
         end
 
 
