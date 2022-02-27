@@ -92,8 +92,6 @@ myprog_inter = mdo
     i $ RET
 
 
--- could factorise out the returning of start and putting a RET on the end
--- into a mkSubroutine helper
 define_interact_inner = mkSubroutine $ do
     -- console_print_str "u"
     -- i $ LOAD 118
