@@ -148,9 +148,6 @@ module top (
             instr_phase <= 3;
           end
           if( (instr & 32'hF0000000) == 32'h70000000) begin // DROP stack head
-            scratchstack_addr <= scratchsp - 1;
-            scratchsp <= scratchsp - 1;
-
             pc <= pc + 1;
 
             // read scratch ram data into scratch
@@ -170,8 +167,6 @@ module top (
           if( (instr & 32'hF0000000) == 32'hA0000000) begin // RET to on-stack new PC (aka GOTO)... like DROP but doing PC stuff with the otherwise-discarded value
             pc <= scratch;
 
-            scratchstack_addr <= scratchsp - 1;
-            scratchsp <= scratchsp - 1;
             instr_phase <= 100;
             pop_phase <= 1;
           end
@@ -217,8 +212,6 @@ module top (
             // or if i have to wait one cycle? my understanding of
             // when things are allowed to change is a bit fuzzy.
             general_wdata <= scratch & 32'h000000FF;
-            scratchstack_addr <= scratchsp - 1;
-            scratchsp <= scratchsp - 1;
             instr_phase <= 90;
             pop_phase <= 1;
             pc <= pc + 1;
@@ -237,14 +230,19 @@ module top (
         end
 
         if(pop_phase == 1) begin // someones requested stack read
-            // fluffy wait
+            scratchstack_addr <= scratchsp - 1;
+            scratchsp <= scratchsp - 1;
             pop_phase <= 2;
         end
-        if(pop_phase == 2) begin // someones requested stack read
+        if(pop_phase == 2) begin
             // fluffy wait
             pop_phase <= 3;
         end
         if(pop_phase == 3) begin // someones requested stack read
+            // fluffy wait
+            pop_phase <= 4;
+        end
+        if(pop_phase == 4) begin // someones requested stack read
             scratch <= scratchstack_rdata;
             pop_phase <= 0;
         end
