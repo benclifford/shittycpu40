@@ -24,7 +24,7 @@ module top (
 
     reg [31:0] pc;  // program counter
 
-    reg [8:0] instr_phase; // phase through instruction execution
+    reg [7:0] instr_phase; // phase through instruction execution
 
     reg [31:0] instr;
 
