@@ -107,15 +107,14 @@ module top (
         end
         if(instr_phase == 1) begin
           // when we hit here we should have the instruction to execute in instr
-          if((instr & 32'hF0000000) == 32'h20000000) begin   // LED-immediate to LSB of instruction
+          if((instr & 32'hF0000000) == 32'h20000000) begin   // Set LED to LSB of stack
             led <= scratch[0];
             pc <= pc + 1;
             instr_phase <= 32;
             pop_phase <= 1;
           end
-          // any instruction with top nibble 1 means "sleep immediate"
-          // with a maximum of around 16 seconds delay possible with 16 MHz clock
-          if( (instr & 32'hF0000000) == 32'h10000000) begin
+          if( (instr & 32'hF0000000) == 32'h10000000) begin  // Sleep n clock cycles
+            // A maximum of around 12 seconds delay possible with 12 MHz clock
             delay_countdown <= scratch;
             pc <= pc + 1;
             instr_phase <= 2; // go into wait-before-phase 0 state
