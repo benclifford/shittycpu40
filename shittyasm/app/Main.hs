@@ -7,7 +7,7 @@ import Control.Monad.State.Lazy
 import Data.Char
 import Numeric (showHex)
 
-data Token = LOAD Int | LED Bool | SLEEP Int | DECR Int | JUMPBACKNZ Int | DROP | RET | GOSUB Int | CONSOLEUARTINIT | CONSOLEWRITESTACK | CONSOLEREAD | TONEGEN Int
+data Token = LOAD Int | LED | SLEEP Int | DECR Int | JUMPBACKNZ Int | DROP | RET | GOSUB Int | CONSOLEUARTINIT | CONSOLEWRITESTACK | CONSOLEREAD | TONEGEN Int
   deriving Show
 
 main :: IO ()
@@ -60,7 +60,7 @@ codify (SLEEP n) = 0x10000000 + n
 codify (DECR n) = 0x40000000 + n
 codify (JUMPBACKNZ n) = 0x50000000 + n
 codify (GOSUB n) = 0x90000000 + n
-codify (LED b) = 0x20000000 + n where n = if b then 1 else 0
+codify LED = 0x20000000
 codify DROP = 0x70000000
 codify RET = 0xA0000000
 codify CONSOLEUARTINIT = 0xB1000000
@@ -149,9 +149,11 @@ myprog_loop_flash = mdo
     jumpbacknz_absolute middle_loop
 
     i $ DROP
-    i $ LED True
+    i $ LOAD 1
+    i $ LED
     i $ SLEEP 0x1000000
-    i $ LED False
+    i $ LOAD 0
+    i $ LED
     i $ DECR 1
     jumpbacknz_absolute outer_loop
 
@@ -162,9 +164,11 @@ myprog_loop_flash = mdo
     i $ RET -- RET >> LOAD = GOTO
 
     pulse_leds <- here
-    i $ LED True
+    i $ LOAD 1
+    i $ LED
     i $ SLEEP 0x80000
-    i $ LED False
+    i $ LOAD 0
+    i $ LED
     i $ SLEEP 0x80000
     i $ RET
 

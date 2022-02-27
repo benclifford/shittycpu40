@@ -108,9 +108,10 @@ module top (
         if(instr_phase == 1) begin
           // when we hit here we should have the instruction to execute in instr
           if((instr & 32'hF0000000) == 32'h20000000) begin   // LED-immediate to LSB of instruction
-            led <= instr[0];
+            led <= scratch[0];
             pc <= pc + 1;
             instr_phase <= 100;
+            pop_phase <= 1;
           end
           // any instruction with top nibble 1 means "sleep immediate"
           // with a maximum of around 16 seconds delay possible with 16 MHz clock
