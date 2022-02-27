@@ -275,10 +275,6 @@ module top (
             pop_phase <= 3;
         end
         if(pop_phase == 3) begin // someones requested stack read
-            // fluffy wait
-            pop_phase <= 4;
-        end
-        if(pop_phase == 4) begin // someones requested stack read
             scratch <= scratch_next;
             scratch_next <= scratchstack_rdata;
             pop_phase <= 0;
