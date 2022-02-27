@@ -107,19 +107,6 @@ module top (
         end
         if(instr_phase == 1) begin
           // when we hit here we should have the instruction to execute in instr
-          if((instr & 32'hFF000000) == 32'hC2000000) begin   // Set LED to LSB of stack
-            led <= scratch[0];
-            pc <= pc + 1;
-            instr_phase <= 32;
-            pop_phase <= 1;
-          end
-          if( (instr & 32'hFF000000) == 32'hC1000000) begin  // Sleep n clock cycles
-            // A maximum of around 12 seconds delay possible with 12 MHz clock
-            delay_countdown <= scratch;
-            pc <= pc + 1;
-            instr_phase <= 2; // go into wait-before-phase 0 state
-            pop_phase <= 1;
-          end
           // Instruction prefix h30000000 is unused: this used to be JUMPZERO, which is placed by LOAD 0, RET
           // and more flexibly, LOAD <somewhere else>, RET
           if( (instr & 32'hF0000000) == 32'h40000000) begin // subtract scratch immediate
@@ -188,12 +175,6 @@ module top (
             pc <= pc + 1;
             instr_phase <= 14; // this should just put console_dat_re back to 0
           end
-          if( (instr & 32'hFF000000) == 32'hC0000000) begin   // set tonegen divider
-            general_wdata <= scratch;
-            pc <= pc + 1;
-            instr_phase <= 12;
-            pop_phase <= 1;
-          end
           if( (instr & 32'hFF000000) == 32'hB4000000) begin   // B4 = write to console - from stack
             // put high uart write, wait till its done, uart low
             // i wonder if i can put the UART high here too?
@@ -204,6 +185,30 @@ module top (
             pop_phase <= 1;
             pc <= pc + 1;
           end
+          if( (instr & 32'hFF000000) == 32'hC0000000) begin   // set tonegen divider
+            general_wdata <= scratch;
+            pc <= pc + 1;
+            instr_phase <= 12;
+            pop_phase <= 1;
+          end
+          if((instr & 32'hFF000000) == 32'hC2000000) begin   // Set LED to LSB of stack
+            led <= scratch[0];
+            pc <= pc + 1;
+            instr_phase <= 32;
+            pop_phase <= 1;
+          end
+          if( (instr & 32'hFF000000) == 32'hC1000000) begin  // Sleep n clock cycles
+            // A maximum of around 12 seconds delay possible with 12 MHz clock
+            delay_countdown <= scratch;
+            pc <= pc + 1;
+            instr_phase <= 2; // go into wait-before-phase 0 state
+            pop_phase <= 1;
+          end
+
+
+
+
+
         end  // end of phase 1 decoding
         if(instr_phase == 2) begin // someones requested a delay before going back to phase 0
             if(delay_countdown == 0) begin
