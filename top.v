@@ -228,25 +228,6 @@ module top (
             scratchstack_wen <= 1;
             instr_phase <= 5; // end-write
         end
-
-        if(pop_phase == 1) begin // someones requested stack read
-            scratchstack_addr <= scratchsp - 1;
-            scratchsp <= scratchsp - 1;
-            pop_phase <= 2;
-        end
-        if(pop_phase == 2) begin
-            // fluffy wait
-            pop_phase <= 3;
-        end
-        if(pop_phase == 3) begin // someones requested stack read
-            // fluffy wait
-            pop_phase <= 4;
-        end
-        if(pop_phase == 4) begin // someones requested stack read
-            scratch <= scratchstack_rdata;
-            pop_phase <= 0;
-        end
-
         if(instr_phase == 5) begin // end write
             scratchstack_wen <= 0;
             instr_phase <= 100;
@@ -298,6 +279,25 @@ module top (
             instr_phase <= 0;  // for now, straight back to the start
             // but expect to put post/join handling in here.
         end
+
+        if(pop_phase == 1) begin // someones requested stack read
+            scratchstack_addr <= scratchsp - 1;
+            scratchsp <= scratchsp - 1;
+            pop_phase <= 2;
+        end
+        if(pop_phase == 2) begin
+            // fluffy wait
+            pop_phase <= 3;
+        end
+        if(pop_phase == 3) begin // someones requested stack read
+            // fluffy wait
+            pop_phase <= 4;
+        end
+        if(pop_phase == 4) begin // someones requested stack read
+            scratch <= scratchstack_rdata;
+            pop_phase <= 0;
+        end
+
 
       end else begin
         rst_delay <= rst_delay - 1;
