@@ -205,10 +205,6 @@ module top (
             pop_phase <= 1;
           end
 
-
-
-
-
         end  // end of phase 1 decoding
         if(instr_phase == 2) begin // someones requested a delay before going back to phase 0
             if(delay_countdown == 0) begin
