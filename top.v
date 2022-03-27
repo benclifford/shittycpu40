@@ -143,9 +143,19 @@ module top (
             instr_phase <= 32;
             pop_phase <= 1;
           end
+          if( (instr & 32'hFF000000) == 32'h71000000) begin // DUP stack head
+            pc <= pc + 1;
+            // scratch -- remains unchanged
+            scratch_next <= scratch;
+            general_wdata <= scratch_next;
+            scratchstack_addr <= scratchsp;
+            scratchsp <= scratchsp + 1;
+            instr_phase <= 3;
+          end
           if( (instr & 32'hFF000000) == 32'h80000000) begin // ADD: a b => (a+b)
             scratch <= scratch + scratch_next;
             pc <= pc + 1;
+            instr_phase <= 32;
             pop_phase <= 1;
             pop_skip_top <= 1;
           end

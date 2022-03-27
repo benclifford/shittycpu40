@@ -7,7 +7,7 @@ import Control.Monad.State.Lazy
 import Data.Char
 import Numeric (showHex)
 
-data Token = LOAD Int | LED | SLEEP | DECR Int | JUMPBACKNZ Int | DROP | RET | GOSUB Int | CONSOLEUARTINIT | CONSOLEWRITESTACK | CONSOLEREAD | TONEGEN
+data Token = LOAD Int | LED | SLEEP | ADD | DECR Int | JUMPBACKNZ Int | DROP | DUP | RET | GOSUB Int | CONSOLEUARTINIT | CONSOLEWRITESTACK | CONSOLEREAD | TONEGEN
   deriving Show
 
 main :: IO ()
@@ -46,6 +46,7 @@ jumpbacknz_absolute :: Int -> State ResolverState ()
 jumpbacknz_absolute target_abs_addr = do
   instr_abs_addr <- here
   let rel = instr_abs_addr - target_abs_addr
+  when (rel < 0) $ error "Relative jump value is negative for JUMPBACKNZ - i.e. target is forwards, not backwards"
   i $ JUMPBACKNZ rel
 
 console_print_str :: String -> State ResolverState ()
@@ -56,10 +57,12 @@ console_print_str msg =
 
 codify :: Token -> Int
 codify (LOAD n) = 0x60000000 + n
+codify ADD = 0x80000000
 codify (DECR n) = 0x40000000 + n
 codify (JUMPBACKNZ n) = 0x50000000 + n
 codify (GOSUB n) = 0x90000000 + n
 codify DROP = 0x70000000
+codify DUP = 0x71000000
 codify RET = 0xA0000000
 codify CONSOLEUARTINIT = 0xB1000000
 codify (CONSOLEREAD) = 0xB3000000
@@ -69,7 +72,7 @@ codify SLEEP = 0xC1000000
 codify LED = 0xC2000000
 codify t = error $ "non-emittable token " ++ show t
 
-myprog = myprog_loop_flash
+myprog = myprog_inter
 
 myprog_inter :: State ResolverState ()
 myprog_inter = mdo
@@ -88,12 +91,12 @@ myprog_inter = mdo
     console_print_str "$ "
     interact_inner <- define_interact_inner
     print_banner <- here
-    console_print_str "ShittyFirmware40/interactive -- Ben Clifford, benc@hawaga.org.uk\n"
+    console_print_str "ShittyFirmware40/interactive r3 -- Ben Clifford, benc@hawaga.org.uk\n"
     i $ RET
 
 
-define_interact_inner = mkSubroutine $ do
-    -- console_print_str "u"
+define_interact_inner = mkSubroutine $ mdo
+    console_print_str "u"
     -- i $ LOAD 118
     -- i $ CONSOLEWRITESTACK
 
@@ -102,7 +105,48 @@ define_interact_inner = mkSubroutine $ do
     i $ CONSOLEREAD
     -- console_print_str "p1"
     -- console_print_str "q1"
+
+    -- This write should only happen if the read is not a "no-data" value
+    -- which is (according to the picosoc docs, all 1s)
+
+    goto write_test
+
+    write_body <- here
+    -- i $ DROP -- drop the test condition
+    i $ LOAD 1
+    i $ ADD
     i $ CONSOLEWRITESTACK
+
+    goto write_continue
+
+    write_test <- here
+
+    -- TODO: we need to test if the top of the stack
+    -- is all 1s...
+
+    -- what we have available is a test that checks
+    -- if it is 0, without dropping.
+
+    -- so... make a new stack value that is the character + 1, assuming rollover
+    -- then test against that - it will be 0 when the value is -1
+    -- then in both routes, drop that duplicated value
+    -- because JUMPBACKNZ does not do that.
+    -- so I need two new instructions:
+    -- DUP
+    -- ADD (impl but not tested)
+
+    -- i $ DUP
+    -- i $ LOAD 1
+    -- i $ ADD
+
+    jumpbacknz_absolute write_body
+    -- ... else ... 
+    -- i $ DROP  -- drop the test condition
+    i $ DROP  -- drop the character instead of writing it
+    goto write_continue -- doesn't need to happen if continue is right after... but non-fallthrough appeals to my taste in modularity
+
+    write_continue <- here
+
     -- console_print_str "s"
     -- i $ SLEEP 0x1000000
     -- console_print_str "\n"
