@@ -91,12 +91,12 @@ myprog_inter = mdo
     console_print_str "$ "
     interact_inner <- define_interact_inner
     print_banner <- here
-    console_print_str "ShittyFirmware40/interactive r3 -- Ben Clifford, benc@hawaga.org.uk\n"
+    console_print_str "ShittyFirmware40/interactive r5 -- Ben Clifford, benc@hawaga.org.uk\n"
     i $ RET
 
 
 define_interact_inner = mkSubroutine $ mdo
-    console_print_str "u"
+    -- console_print_str "u"
     -- i $ LOAD 118
     -- i $ CONSOLEWRITESTACK
 
@@ -134,8 +134,8 @@ define_interact_inner = mkSubroutine $ mdo
     -- ADD (impl but not tested)
 
     i $ DUP
-    -- i $ LOAD 1
-    -- i $ ADD
+    i $ LOAD 1
+    i $ ADD
 
     jumpbacknz_absolute write_body
     -- ... else ... 
