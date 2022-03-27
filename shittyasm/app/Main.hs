@@ -112,9 +112,7 @@ define_interact_inner = mkSubroutine $ mdo
     goto write_test
 
     write_body <- here
-    -- i $ DROP -- drop the test condition
-    i $ LOAD 1
-    i $ ADD
+    i $ DROP -- drop the test condition
     i $ CONSOLEWRITESTACK
 
     goto write_continue
@@ -135,13 +133,13 @@ define_interact_inner = mkSubroutine $ mdo
     -- DUP
     -- ADD (impl but not tested)
 
-    -- i $ DUP
+    i $ DUP
     -- i $ LOAD 1
     -- i $ ADD
 
     jumpbacknz_absolute write_body
     -- ... else ... 
-    -- i $ DROP  -- drop the test condition
+    i $ DROP  -- drop the test condition
     i $ DROP  -- drop the character instead of writing it
     goto write_continue -- doesn't need to happen if continue is right after... but non-fallthrough appeals to my taste in modularity
 
