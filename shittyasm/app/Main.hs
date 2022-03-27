@@ -75,12 +75,52 @@ codify SLEEP = 0xC1000000
 codify LED = 0xC2000000
 codify t = error $ "non-emittable token " ++ show t
 
-myprog = myprog_inter
+myprog = myprog_menu
+
+myprog_menu :: State ResolverState ()
+myprog_menu = mdo
+    i $ CONSOLEUARTINIT
+    i $ GOSUB print_banner
+
+    i $ GOSUB read_char  -- reads a char, waiting for a valid one rather than returning -1
+
+    myprog_inter
+
+    print_banner <- here
+    console_print_str "ShittyFirmware40/interactive r9 -- Ben Clifford, benc@hawaga.org.uk\n"
+    i $ RET
+
+    read_char <- here
+
+    i $ CONSOLEREAD
+
+    goto valid_test
+
+    valid_true <- here
+    i $ DROP  -- drop the test condition
+    -- now the stack is, on top, the read char, and below it,
+    -- the return address.
+    -- need to RET to the return address, leaving the read char
+    -- on the stack.
+    -- we could use SWAP here... but charles moore says I can do that
+    -- with other more fundamental (but more complicated operators)
+XXXX NOTIMPL THIS SWAP RET
+
+    valid_test <- here
+    i $ DUP
+    i $ LOAD 1
+    i $ ADD
+    jumpbacknz_absolute valid_true
+    i $ DROP  -- drop the test condition
+    i $ DROP  -- drop the character instead of writing it
+    goto read_char
+
+    write_continue <- here
+ 
+    i $ RET
 
 myprog_inter :: State ResolverState ()
 myprog_inter = mdo
-    i $ CONSOLEUARTINIT
-    i $ GOSUB print_banner
     outer_loop <- here
     i $ GOSUB interact_inner
     goto outer_loop
@@ -93,32 +133,7 @@ myprog_inter = mdo
     -- symbols?
     console_print_str "$ "
     interact_inner <- define_interact_inner
-    print_banner <- here
-    console_print_str "ShittyFirmware40/interactive r8 -- Ben Clifford, benc@hawaga.org.uk\n"
-
-    -- test OVER
-    i $ LOAD (ord 'a')
-    i $ CONSOLEWRITESTACK
-    i $ LOAD (ord 'B')
-    i $ LOAD (ord 'A')
-    i $ CONSOLEWRITESTACK
-    i $ CONSOLEWRITESTACK
-    i $ LOAD (ord 'X')
-    i $ LOAD (ord 'Y')
-    i $ OVER
-    i $ CONSOLEWRITESTACK
-    i $ CONSOLEWRITESTACK
-    i $ CONSOLEWRITESTACK
-    i $ LOAD (ord 'Q')
-    i $ LOAD (ord 'R')
-    i $ PUSH
-    i $ CONSOLEWRITESTACK
-    i $ POP
-    i $ CONSOLEWRITESTACK
-
-    i $ LOAD (ord '\n')
-    i $ CONSOLEWRITESTACK
-    i $ RET
+    return ()
 
 
 define_interact_inner = mkSubroutine $ mdo
