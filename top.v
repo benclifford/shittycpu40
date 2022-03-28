@@ -193,7 +193,6 @@ module top (
 
             auxstack_addr <= auxsp;
             auxsp <= auxsp + 1;
-            auxstack_wen <= 1; // unsure if I should delay this pulse on by 1 clockcycle?
 
             instr_phase <= 18; // pulse off wen.
 
@@ -204,7 +203,7 @@ module top (
             // set the address... this phase could go away perhaps if
             // auxsp and auxstack_addr are the same?
 
-            auxstack_addr <= auxsp;
+            auxstack_addr <= auxsp - 1;
             auxsp <= auxsp - 1;
 
             pc <= pc + 1;
@@ -343,11 +342,18 @@ module top (
             instr_phase <= 32;
             console_dat_we <= 0; // maybe this has to happen as soon as console_dat_wait goes low?
         end
-        if(instr_phase == 18) begin // unpulse aux stack write
+        if(instr_phase == 18) begin // pulse aux stack write - PUSH
+            auxstack_wen <= 1; // unsure if I should delay this pulse on by 1 clockcycle?
+            instr_phase <= 20;
+        end
+        if(instr_phase == 20) begin // unpulse aux stack write - PUSH
             auxstack_wen <= 0;
             instr_phase <= 32;
         end
         if(instr_phase == 19) begin // next part of POP
+            instr_phase <= 21; // wait state on auxstack read
+        end
+        if(instr_phase == 21) begin // next part of POP
             scratch <= auxstack_rdata;
             instr_phase <= 3;
         end

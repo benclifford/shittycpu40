@@ -81,13 +81,63 @@ myprog_menu :: State ResolverState ()
 myprog_menu = mdo
     i $ CONSOLEUARTINIT
     i $ GOSUB print_banner
+    console_print_str "OVER test: should see ABA: "
+    i $ LOAD (ord 'A')
+    i $ LOAD (ord 'B')
+    i $ OVER
+    i $ CONSOLEWRITESTACK
+    i $ CONSOLEWRITESTACK
+    i $ CONSOLEWRITESTACK
+    console_print_str "\n"
+ 
+    console_print_str "PUSH/POP test - 2 values: should see CD: "
+    i $ LOAD (ord 'D')
+    i $ LOAD (ord 'C')
+    i $ PUSH
+    i $ PUSH
+    i $ POP
+    i $ POP
+    i $ CONSOLEWRITESTACK
+    i $ CONSOLEWRITESTACK
+    console_print_str "\n"
 
+   
+    console_print_str "PUSH/POP test - 3 values: should see FGH: "
+    i $ LOAD (ord 'H')
+    i $ LOAD (ord 'G')
+    i $ LOAD (ord 'F')
+    i $ PUSH
+    i $ PUSH
+    i $ PUSH
+    i $ POP
+    i $ POP
+    i $ POP
+    i $ CONSOLEWRITESTACK
+    i $ CONSOLEWRITESTACK
+    i $ CONSOLEWRITESTACK
+    console_print_str "\n"
+
+
+    console_print_str "Swap test: should see AB: "
+
+    i $ LOAD (ord 'A')
+    i $ LOAD (ord 'B')
+    swap
+    i $ CONSOLEWRITESTACK
+    i $ CONSOLEWRITESTACK
+
+    console_print_str "\n"
+
+    console_print_str "Waiting for one char: "
     i $ GOSUB read_char  -- reads a char, waiting for a valid one rather than returning -1
+    i $ CONSOLEWRITESTACK
+
+    console_print_str "Entering interactive loop."
 
     myprog_inter
 
     print_banner <- here
-    console_print_str "ShittyFirmware40/interactive r9 -- Ben Clifford, benc@hawaga.org.uk\n"
+    console_print_str "ShittyFirmware40/interactive r13 -- Ben Clifford, benc@hawaga.org.uk\n"
     i $ RET
 
     read_char <- here
@@ -104,7 +154,8 @@ myprog_menu = mdo
     -- on the stack.
     -- we could use SWAP here... but charles moore says I can do that
     -- with other more fundamental (but more complicated operators)
-XXXX NOTIMPL THIS SWAP RET
+    swap
+    i $ RET
 
     valid_test <- here
     i $ DUP
@@ -195,6 +246,17 @@ mkSubroutine code = do
     start <- here
     code
     return start
+
+-- a b    a b a     a b | a    a | b a    | b a    b | a     b a |
+swap :: State ResolverState ()
+swap = do
+    i $ OVER
+    i $ PUSH
+    i $ PUSH
+    i $ DROP
+    i $ POP
+    i $ POP
+
 
 goto :: Int -> State ResolverState ()
 goto a = do
