@@ -7,7 +7,7 @@ import Control.Monad.State.Lazy
 import Data.Char
 import Numeric (showHex)
 
-data Token = LOAD Int | LED | SLEEP | ADD | DECR Int | JUMPBACKNZ Int | DROP | DUP | OVER | RET | GOSUB Int | CONSOLEUARTINIT | CONSOLEWRITESTACK | CONSOLEREAD | TONEGEN
+data Token = LOAD Int | LED | SLEEP | ADD | DECR Int | JUMPBACKNZ Int | DROP | DUP | OVER | PUSH | POP | RET | GOSUB Int | CONSOLEUARTINIT | CONSOLEWRITESTACK | CONSOLEREAD | TONEGEN
   deriving Show
 
 main :: IO ()
@@ -64,6 +64,8 @@ codify (GOSUB n) = 0x90000000 + n
 codify DROP = 0x70000000
 codify DUP = 0x71000000
 codify OVER = 0x72000000
+codify PUSH = 0x78000000
+codify POP = 0x79000000
 codify RET = 0xA0000000
 codify CONSOLEUARTINIT = 0xB1000000
 codify (CONSOLEREAD) = 0xB3000000
@@ -106,6 +108,12 @@ myprog_inter = mdo
     i $ OVER
     i $ CONSOLEWRITESTACK
     i $ CONSOLEWRITESTACK
+    i $ CONSOLEWRITESTACK
+    i $ LOAD (ord 'Q')
+    i $ LOAD (ord 'R')
+    i $ PUSH
+    i $ CONSOLEWRITESTACK
+    i $ POP
     i $ CONSOLEWRITESTACK
 
     i $ LOAD (ord '\n')

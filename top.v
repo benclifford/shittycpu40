@@ -64,6 +64,28 @@ module top (
     reg [7:0] scratchsp;
 
 
+    // the auxiliary stack
+
+    cellram_scratch auxstackram (
+      .CLK (CLK),
+      .WDATA (general_wdata),
+      .ADDR (auxstack_addr),
+      .RDATA (auxstack_rdata),
+      .WEN (auxstack_wen)
+
+    );
+
+    wire [31:0] auxstack_rdata;
+    reg [7:0] auxstack_addr;
+    reg auxstack_wen;
+    reg [7:0] auxsp;
+
+    // Does auxsp need to be different from auxstack_addr?
+    // I guess it allows auxsp to be incremented separately
+    // from preserving the previous value in _addr?
+    // Do I care about that?
+
+
     // the uart
 
     wire console_resetn = rst_delay == 0;
@@ -160,6 +182,41 @@ module top (
             scratchstack_addr <= scratchsp;
             scratchsp <= scratchsp + 1;
             instr_phase <= 3;
+          end
+          if( (instr & 32'hFF000000) == 32'h78000000) begin // PUSH
+            // transfer top of scratch stack to aux stack
+            pc <= pc + 1;
+           
+            general_wdata <= scratch;
+ 
+            pop_phase <= 1;
+
+            auxstack_addr <= auxsp;
+            auxsp <= auxsp + 1;
+            auxstack_wen <= 1; // unsure if I should delay this pulse on by 1 clockcycle?
+
+            instr_phase <= 18; // pulse off wen.
+
+          end
+          if( (instr & 32'hFF000000) == 32'h79000000) begin // POP
+
+            // phase 1:
+            // set the address... this phase could go away perhaps if
+            // auxsp and auxstack_addr are the same?
+
+            auxstack_addr <= auxsp;
+            auxsp <= auxsp - 1;
+
+            pc <= pc + 1;
+
+            // scratch will be set in next phase
+            scratch_next <= scratch;
+            general_wdata <= scratch_next;
+            scratchstack_addr <= scratchsp;
+            scratchsp <= scratchsp + 1;
+
+            instr_phase <= 19;
+
           end
           if( (instr & 32'hFF000000) == 32'h80000000) begin // ADD: a b => (a+b)
             scratch <= scratch + scratch_next;
@@ -286,6 +343,14 @@ module top (
             instr_phase <= 32;
             console_dat_we <= 0; // maybe this has to happen as soon as console_dat_wait goes low?
         end
+        if(instr_phase == 18) begin // unpulse aux stack write
+            auxstack_wen <= 0;
+            instr_phase <= 32;
+        end
+        if(instr_phase == 19) begin // next part of POP
+            scratch <= auxstack_rdata;
+            instr_phase <= 3;
+        end
         if(instr_phase == 32 && pop_phase == 0) begin
             // waits for both main instruction to end and for pop_phase to end
 
@@ -327,6 +392,9 @@ module top (
       scratchsp <= 0;
       pc = 0;
       instr_phase = 0;
+
+      auxstack_wen <= 0;
+      auxsp <= 0;
 
       `include "ram.vh" 
 
